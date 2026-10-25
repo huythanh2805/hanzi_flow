@@ -6,6 +6,8 @@ import {
   searchCatalogue,
 } from "@/lib/server/catalogue";
 import { entryId, filterSchema } from "@/lib/domain/validation";
+import { DeckFlashcards } from "@/components/decks/flashcards";
+import { deckRefsSchema, deckGroupsSchema } from "@/lib/domain/decks";
 export const metadata = { title: "Flashcards" };
 export default async function FlashcardsPage({
   searchParams,
@@ -14,6 +16,28 @@ export default async function FlashcardsPage({
 }) {
   const params = await searchParams;
   const bootstrap = await getBootstrap();
+  if (params.decks !== undefined) {
+    const refs = deckRefsSchema.safeParse(params.decks.split(",")),
+      groups =
+        params.groups !== undefined
+          ? deckGroupsSchema.safeParse(params.groups.split(",").map(Number))
+          : undefined;
+    if (
+      !refs.success ||
+      (groups && !groups.success) ||
+      (params.size !== undefined &&
+        ![10, 15, 20, 25, 30].includes(Number(params.size)))
+    )
+      notFound();
+    return (
+      <DeckFlashcards
+        refs={refs.data}
+        groups={groups?.data}
+        size={params.size ? Number(params.size) : undefined}
+        fingerprint={params.version?.slice(0, 100)}
+      />
+    );
+  }
   if (params.entry) {
     if (!entryId.safeParse(params.entry).success) notFound();
     const entry = await getVocabulary(params.entry);

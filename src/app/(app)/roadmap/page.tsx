@@ -35,12 +35,12 @@ export default function RoadmapPage() {
         </Link>
       </section>
       <section className="card" id="decks">
-        <span className="small-label">PHASE 3</span>
+        <span className="small-label">BỘ TỪ CÁ NHÂN</span>
         <h2>Bộ từ của riêng bạn</h2>
         <p>
-          Tạo và sắp xếp bộ từ cá nhân, học với nhiều dạng bài tập và ghi âm
-          phát âm.
+          Gom từ trong thư viện vào bộ riêng, kết hợp nhiều bộ và học với Flashcards hoặc Luyện tập.
         </p>
+        <Link className="text-link" href="/decks">Mở Bộ từ của tôi →</Link>
       </section>
       <section className="card" id="analytics">
         <span className="small-label">PHASE 3</span>

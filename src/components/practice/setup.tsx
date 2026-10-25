@@ -31,19 +31,86 @@ import { previewPractice } from "@/app/practice-actions";
 import { actionValue } from "@/lib/domain/action-result";
 import { exerciseTypes, type ExerciseType } from "@/lib/domain/practice";
 import { exerciseLabels } from "@/lib/domain/practice-exercises";
+import { useDeckList, useDeckStudy } from "../decks/hooks";
+import { DeckGroupSelection } from "../decks/study-selection";
+import { resolveDecks, practiceSelectionKey } from "@/lib/deck-client";
 
 export type PracticeSetupSeed = {
   band?: string;
   topic?: string;
   group?: number;
   entries?: string[];
+  decks?: string[];
+  deckGroups?: number[];
+  deckFingerprint?: string;
+  deckSize?: number;
+  selection?: string;
 };
 export function PracticeSetup({ seed = {} }: { seed?: PracticeSetupSeed }) {
-  const { ready, preferences } = useLearning();
+  const { ready } = useLearning();
   return ready ? (
-    <SetupForm key={preferences.lessonSize} seed={seed} />
+    seed.selection ? (
+      <DraftSetup key={seed.selection} seed={seed} />
+    ) : (
+      <SetupForm key={JSON.stringify(seed)} seed={seed} />
+    )
   ) : (
     <LoadingState label="Đang mở Luyện tập…" />
+  );
+}
+function DraftSetup({ seed }: { seed: PracticeSetupSeed }) {
+  const { bootstrap } = useLearning();
+  const [state, setState] = useState<{ ids: string[]; error: string } | null>(
+    null,
+  );
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        const raw = sessionStorage.getItem(
+          practiceSelectionKey(
+            bootstrap.mode,
+            bootstrap.user?.id ?? "",
+            seed.selection!,
+          ),
+        );
+        if (!raw)
+          throw new Error(
+            "Tập từ này không có trong tab hiện tại. Hãy mở lại từ Flashcards.",
+          );
+        const ids = JSON.parse(raw);
+        if (
+          !Array.isArray(ids) ||
+          !ids.length ||
+          ids.length > 11092 ||
+          ids.some((v) => !entryId.safeParse(v).success)
+        )
+          throw new Error("Tập từ không hợp lệ.");
+        setState({ ids, error: "" });
+      } catch (e) {
+        setState({
+          ids: [],
+          error: e instanceof Error ? e.message : "Không mở được tập từ.",
+        });
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [bootstrap.mode, bootstrap.user?.id, seed.selection]);
+  return !state ? (
+    <LoadingState label="Đang khôi phục tập từ Flashcards…" />
+  ) : state.error ? (
+    <div role="alert" className="card deck-empty">
+      <p>{state.error}</p>
+      <Link href="/decks">Về Bộ từ của tôi</Link>
+    </div>
+  ) : (
+    <SetupForm
+      seed={{
+        ...seed,
+        entries: state.ids,
+        selection: undefined,
+        decks: undefined,
+      }}
+    />
   );
 }
 function SetupForm({ seed }: { seed: PracticeSetupSeed }) {
@@ -67,8 +134,15 @@ function SetupForm({ seed }: { seed: PracticeSetupSeed }) {
     ? seed.band!
     : preferences.preferredBand || "1";
   const [sourceMode, setSourceMode] = useState<
-    "groups" | "band" | "personal" | "entries"
-  >(seed.entries?.length ? "entries" : "groups");
+    "groups" | "band" | "personal" | "entries" | "decks"
+  >(seed.decks?.length ? "decks" : seed.entries?.length ? "entries" : "groups");
+  const [deckRefs, setDeckRefs] = useState<string[]>(seed.decks ?? ["saved"]);
+  const deckList = useDeckList(),
+    deckStudy = useDeckStudy(sourceMode === "decks" ? deckRefs : [], {
+      groups: seed.deckGroups,
+      fingerprint: seed.deckFingerprint,
+      size: seed.deckSize,
+    });
   const [collectionType, setCollectionType] = useState<"band" | "topic">(
     seed.topic ? "topic" : "band",
   );
@@ -90,6 +164,17 @@ function SetupForm({ seed }: { seed: PracticeSetupSeed }) {
     [recent, setRecent] = useState<PracticeSummary[]>([]),
     [recentError, setRecentError] = useState("");
   const request = useRef<string | null>(null);
+  const previousSize = useRef(preferences.lessonSize);
+  useEffect(() => {
+    if (previousSize.current === preferences.lessonSize) return;
+    previousSize.current = preferences.lessonSize;
+    const timer = setTimeout(() => {
+      setSelected([]);
+      setPage(1);
+      request.current = null;
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [preferences.lessonSize]);
   const explicit = useMemo(
     () =>
       [...new Set(seed.entries ?? [])].filter(
@@ -121,13 +206,15 @@ function SetupForm({ seed }: { seed: PracticeSetupSeed }) {
     personal === "learned" ? p.state !== "NEW" : p[personal],
   ).length;
   const count =
-    sourceMode === "groups"
-      ? selectedIds.length
-      : sourceMode === "band"
-        ? (bootstrap.counts[band] ?? 0)
-        : sourceMode === "personal"
-          ? personalCount
-          : explicit.length;
+    sourceMode === "decks"
+      ? deckStudy.ids.length
+      : sourceMode === "groups"
+        ? selectedIds.length
+        : sourceMode === "band"
+          ? (bootstrap.counts[band] ?? 0)
+          : sourceMode === "personal"
+            ? personalCount
+            : explicit.length;
   useEffect(() => {
     let active = true;
     listPractice(bootstrap.mode)
@@ -156,18 +243,25 @@ function SetupForm({ seed }: { seed: PracticeSetupSeed }) {
     request.current = null;
   }
   const source: PracticeSource =
-    sourceMode === "groups"
+    sourceMode === "decks"
       ? {
-          kind: "groups",
-          collectionType,
-          collectionId,
-          groups: [...selected].sort((a, b) => a - b),
+          kind: "decks",
+          refs: deckStudy.refs.length ? deckStudy.refs : ["saved"],
+          groups: deckStudy.groups,
+          fingerprint: deckStudy.snapshot?.fingerprint,
         }
-      : sourceMode === "band"
-        ? { kind: "band", band: band as (typeof bands)[number] }
-        : sourceMode === "personal"
-          ? { kind: "personal", filter: personal }
-          : { kind: "entries", ids: explicit };
+      : sourceMode === "groups"
+        ? {
+            kind: "groups",
+            collectionType,
+            collectionId,
+            groups: [...selected].sort((a, b) => a - b),
+          }
+        : sourceMode === "band"
+          ? { kind: "band", band: band as (typeof bands)[number] }
+          : sourceMode === "personal"
+            ? { kind: "personal", filter: personal }
+            : { kind: "entries", ids: explicit };
   const chosenTypes =
     mode === "exam" ? (["meaning_choice"] as ExerciseType[]) : types;
   const configuration = JSON.stringify({
@@ -189,11 +283,27 @@ function SetupForm({ seed }: { seed: PracticeSetupSeed }) {
     let active = true;
     const timer = setTimeout(() => {
       const requestId = crypto.randomUUID();
-      previewPractice(
-        { ...JSON.parse(configuration), requestId },
-        JSON.parse(personalKey),
-      )
-        .then(actionValue)
+      Promise.resolve()
+        .then(async () => {
+          const input = {
+            ...JSON.parse(configuration),
+            requestId,
+          } as PracticeStart;
+          const trialIds =
+            input.source.kind === "decks" && bootstrap.mode === "trial"
+              ? (
+                  await resolveDecks(
+                    bootstrap.mode,
+                    progress,
+                    input.source.refs,
+                    input.source.groups,
+                    input.lessonSize,
+                    input.source.fingerprint,
+                  )
+                ).ids
+              : JSON.parse(personalKey);
+          return actionValue(await previewPractice(input, trialIds));
+        })
         .then((result) => {
           if (active) {
             setPreview({
@@ -219,7 +329,15 @@ function SetupForm({ seed }: { seed: PracticeSetupSeed }) {
       active = false;
       clearTimeout(timer);
     };
-  }, [configuration, personalKey, previewKey, count, previewAttempt]);
+  }, [
+    configuration,
+    personalKey,
+    previewKey,
+    count,
+    previewAttempt,
+    bootstrap.mode,
+    progress,
+  ]);
   const previewReady =
     preview?.key === previewKey && previewError?.key !== previewKey;
   const voiceMissing =
@@ -310,7 +428,10 @@ function SetupForm({ seed }: { seed: PracticeSetupSeed }) {
             ] as const
           ).map(([value, label]) => (
             <button
-              aria-pressed={sourceMode === value}
+              aria-pressed={
+                sourceMode === value ||
+                (value === "personal" && sourceMode === "decks")
+              }
               key={value}
               disabled={busy}
               onClick={() => chooseSource(value)}
@@ -495,21 +616,62 @@ function SetupForm({ seed }: { seed: PracticeSetupSeed }) {
               </p>
             </div>
           )}
-          {sourceMode === "personal" && (
+          {(sourceMode === "personal" || sourceMode === "decks") && (
             <label>
               Bộ từ cá nhân
               <select
-                value={personal}
+                value={sourceMode === "decks" ? "decks" : personal}
                 onChange={(e) => {
-                  setPersonal(e.target.value as typeof personal);
+                  if (e.target.value === "decks") setSourceMode("decks");
+                  else {
+                    setSourceMode("personal");
+                    setPersonal(e.target.value as typeof personal);
+                  }
                   request.current = null;
                 }}
               >
                 <option value="learned">Từ đã học</option>
                 <option value="favorite">Từ đã lưu</option>
                 <option value="difficult">Từ khó</option>
+                <option value="decks">Chọn / gộp bộ từ của tôi</option>
               </select>
             </label>
+          )}
+          {sourceMode === "decks" && (
+            <div className="practice-deck-source">
+              <p>
+                Chọn một hoặc nhiều bộ. Các mục trùng mã chỉ được hỏi một lần.
+              </p>
+              {deckList.error && (
+                <p role="alert" className="form-error">
+                  {deckList.error}
+                </p>
+              )}
+              <div className="deck-targets">
+                {deckList.decks.map((d) => (
+                  <label key={d.id}>
+                    <input
+                      type="checkbox"
+                      checked={deckRefs.includes(d.id)}
+                      aria-label={`Chọn bộ ${d.name}`}
+                      onChange={(e) => {
+                        setDeckRefs((old) =>
+                          e.target.checked
+                            ? [...old, d.id]
+                            : old.filter((id) => id !== d.id),
+                        );
+                        request.current = null;
+                      }}
+                    />
+                    <span>
+                      <strong>{d.name}</strong>
+                      <small>{number(d.total)} mục từ</small>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <DeckGroupSelection study={deckStudy} />
+            </div>
           )}
           {sourceMode === "entries" && (
             <div className="practice-custom-source">

@@ -19,6 +19,13 @@ vi.mock("@/app/actions", () => ({
   updateVocabulary: vi.fn(),
   savePreferences: vi.fn(),
 }));
+vi.mock("@/app/deck-actions", () => ({
+  cloudDeckList: vi.fn(),
+  cloudDeckMutate: vi.fn(),
+  cloudDeckResolve: vi.fn(),
+  cloudDeckWords: vi.fn(),
+  trialDeckIndex: vi.fn(),
+}));
 const word: Vocabulary = {
   id: "hsk30-b1-0124",
   band: "1",

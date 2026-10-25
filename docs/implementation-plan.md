@@ -25,7 +25,7 @@ Licensed dictionaries (for example CC-CEDICT, after separately inspecting its cu
 
 ## Later phases
 
-Chinese↔meaning multiple choice and resumable practice history are implemented; see [practice](practice.md). Remaining Phase 2: multi-stage lessons, FSRS atomic scheduling/review queues, event-based daily plans, advanced flashcards, listening and typing. Phase 3: remaining exercises, recordings, decks, analytics/streaks and offline support.
+Chinese↔meaning, matching/listening practice and resumable history are implemented; see [practice](practice.md). Private catalogue-based collections and combined-deck study are implemented; see [decks](decks.md). Remaining work includes multi-stage lessons, FSRS atomic scheduling/review queues, event-based daily plans, typing/context exercises, recordings, custom/shared decks, analytics/streaks and offline support.
 
 ## Review gates and test plan
 

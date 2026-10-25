@@ -21,6 +21,7 @@ import {
 } from "@/lib/practice-client";
 import type { PracticeBatch } from "@/lib/domain/practice";
 import { number } from "@/lib/utils";
+import { AddToDecksButton } from "../decks/add-dialog";
 export function PracticeResult({ sessionId }: { sessionId: string }) {
   const { ready } = useLearning();
   return ready ? (
@@ -284,6 +285,7 @@ function Result({ sessionId }: { sessionId: string }) {
           </Button>
         </div>
         <div className="practice-result-actions">
+          <AddToDecksButton ids={[...selected]} disabled={busy}/>
           <Button
             disabled={busy || !selected.size}
             onClick={() => void retry()}

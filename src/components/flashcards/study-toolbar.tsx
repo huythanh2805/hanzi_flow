@@ -10,6 +10,7 @@ export function StudyToolbar({
   favorite,
   onBookmark,
   disabled,
+  extra,
 }: {
   mode: StudyMode;
   autoPlay: boolean;
@@ -18,6 +19,7 @@ export function StudyToolbar({
   favorite: boolean;
   onBookmark: () => void;
   disabled: boolean;
+  extra?: React.ReactNode;
 }) {
   return (
     <div className="study-tools">
@@ -29,6 +31,7 @@ export function StudyToolbar({
             : `Chữ Hán → ${mode === "vi" ? "Tiếng Việt" : "Tiếng Anh"}`}
       </span>
       <div>
+        {extra}
         <label className="checkbox-label">
           <input
             type="checkbox"

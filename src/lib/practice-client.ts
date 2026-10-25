@@ -26,6 +26,7 @@ import {
   type PrivatePracticeQuestion,
 } from "./domain/practice";
 import type { ProgressMap } from "./domain/types";
+import { resolveDecks } from "./deck-client";
 import { actionValue } from "./domain/action-result";
 
 type Mode = "cloud" | "trial";
@@ -140,16 +141,33 @@ export async function startPractice(
   // than the full progress map, which can exceed the Server Action body limit.
   const personalFilter =
     parsed.source.kind === "personal" ? parsed.source.filter : null;
-  const personalIds = personalFilter
-    ? Object.values(progress)
-        .filter((p) =>
-          personalFilter === "learned" ? p.state !== "NEW" : p[personalFilter],
+  const deckSnapshot =
+    parsed.source.kind === "decks"
+      ? await resolveDecks(
+          mode,
+          progress,
+          parsed.source.refs,
+          parsed.source.groups,
+          parsed.lessonSize,
+          parsed.source.fingerprint,
         )
-        .map((p) => p.vocabulary_id)
-    : [];
+      : undefined;
+  const personalIds = deckSnapshot
+    ? deckSnapshot.ids
+    : personalFilter
+      ? Object.values(progress)
+          .filter((p) =>
+            personalFilter === "learned"
+              ? p.state !== "NEW"
+              : p[personalFilter],
+          )
+          .map((p) => p.vocabulary_id)
+      : [];
+
   const summary = actionValue(
     await prepareTrialPractice(parsed, personalIds, parentIds),
   );
+  if (deckSnapshot) summary.title = deckSnapshot.title;
   try {
     for (let offset = 0; offset < summary.total; offset += 50) {
       const questions = actionValue(

@@ -42,6 +42,8 @@ async function client() {
   return db;
 }
 function message(error: { message: string }) {
+  if (error.message.includes("SOURCE_CHANGED"))
+    return new Error("Bộ từ đã thay đổi. Hãy chọn lại nhóm trước khi tạo bài.");
   if (error.message.includes("VARIANT_CHANGED"))
     return new Error(
       "Dạng câu hỏi đã thay đổi ở thiết bị khác. Hãy tải trạng thái đã lưu.",
@@ -61,6 +63,38 @@ async function createCloudPracticeData(
 ): Promise<PracticeSummary> {
   const parsed = practiceStartSchema.parse(input),
     db = await client();
+  if (parsed.source.kind === "decks") {
+    const prior = await db
+      .from("practice_sessions")
+      .select("id,source,mode,direction,language,lesson_size,exercise_types")
+      .eq("request_id", parsed.requestId)
+      .maybeSingle();
+    if (prior.error) throw message(prior.error);
+    if (prior.data) {
+      const old = prior.data;
+      if (
+        ["kind", "refs", "groups", "fingerprint"].some(
+          (key) =>
+            JSON.stringify(old.source[key]) !==
+            JSON.stringify((parsed.source as Record<string, unknown>)[key]),
+        ) ||
+        old.mode !== parsed.mode ||
+        old.direction !== parsed.direction ||
+        old.language !== parsed.language ||
+        old.lesson_size !== parsed.lessonSize ||
+        JSON.stringify([...old.exercise_types].sort()) !==
+          JSON.stringify(normalizedExerciseTypes(parsed.exerciseTypes).sort())
+      )
+        throw new Error("Yêu cầu đã được dùng cho bài khác.");
+      const r = await db.rpc("practice_read", {
+        p_id: old.id,
+        p_offset: 0,
+        p_limit: 1,
+      });
+      if (r.error) throw message(r.error);
+      return r.data.session;
+    }
+  }
   if (parsed.exerciseTypes?.some((t) => t !== "meaning_choice"))
     return installCloudExercises(parsed);
   const { data, error } = await db.rpc("practice_create", { p_input: parsed });
@@ -148,7 +182,7 @@ async function prepareTrialPracticeData(
   const rows = await trialCatalogue();
   const ids = selectPracticeIds(
     rows,
-    parsed.source.kind === "personal"
+    parsed.source.kind === "personal" || parsed.source.kind === "decks"
       ? { kind: "entries", ids: personalIds }
       : parsed.source,
     parsed.lessonSize,
@@ -172,19 +206,21 @@ async function prepareTrialPracticeData(
         : (topics.find((t) => t.id === source.collectionId)?.name ?? "Chủ đề")
       : "";
   const title =
-    source.kind === "band"
-      ? `Toàn bộ Band ${source.band}`
-      : source.kind === "groups"
-        ? `${new Set(source.groups).size} nhóm · ${collectionName}`
-        : source.kind === "personal"
-          ? {
-              learned: "Từ đã học",
-              favorite: "Từ đã lưu",
-              difficult: "Từ khó",
-            }[source.filter]
-          : source.kind === "retry"
-            ? "Luyện lại từ đã chọn"
-            : "Nhóm vừa học";
+    source.kind === "decks"
+      ? `${source.refs.length} bộ từ kết hợp`
+      : source.kind === "band"
+        ? `Toàn bộ Band ${source.band}`
+        : source.kind === "groups"
+          ? `${new Set(source.groups).size} nhóm · ${collectionName}`
+          : source.kind === "personal"
+            ? {
+                learned: "Từ đã học",
+                favorite: "Từ đã lưu",
+                difficult: "Từ khó",
+              }[source.filter]
+            : source.kind === "retry"
+              ? "Luyện lại từ đã chọn"
+              : "Nhóm vừa học";
   const session: PrivatePracticeSession = {
     id: parsed.requestId,
     title,
@@ -243,7 +279,7 @@ async function respond<T>(work: () => Promise<T>): Promise<ActionResult<T>> {
         error instanceof z.ZodError
           ? "Thông tin bài luyện không hợp lệ. Hãy kiểm tra lựa chọn."
           : error instanceof Error
-            ? error.message
+            ? error.message.replace(/^SOURCE_CHANGED:\s*/, "")
             : "Không thực hiện được yêu cầu. Hãy thử lại.",
     };
   }

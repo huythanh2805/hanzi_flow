@@ -70,6 +70,7 @@ try {
     "202610250006_practice_interleaved_repeats.sql",
     "202610250007_practice_random_repeat_position.sql",
     "202610250008_practice_exercises.sql",
+    "202610250009_personal_decks.sql",
   ])
     sql(await readFile(`supabase/migrations/${file}`, "utf8"));
   console.log("PASS: practice migration parses with restricted roles and RLS.");
@@ -641,7 +642,179 @@ try {
   const after = sql(
     "select md5(coalesce(string_agg(row_to_json(t)::text,'' order by user_id,vocabulary_id),'')) from public.user_vocabulary t;",
   );
-  if (before !== after)
+  // Personal deck fixtures share the same isolated canonical catalogue.
+  const deckA = randomUUID(),
+    deckB = randomUUID();
+  const deckRpc = (command: unknown) =>
+    JSON.parse(sql(`${actor}select public.deck_mutate(${literal(command)});`));
+  const resolveDeck = (refs: string[], groups?: number[], expected?: string) =>
+    JSON.parse(
+      sql(
+        `${actor}select public.deck_resolve(array[${refs.map((x) => `'${x}'`).join(",")}],${groups ? `array[${groups.join(",")}]` : "null"},20,${expected ? `'${expected}'` : "null"});`,
+      ),
+    );
+  deckRpc({
+    kind: "create",
+    id: deckA,
+    name: "Travel",
+    description: "Across Bands",
+  });
+  deckRpc({ kind: "create", id: deckB, name: "Work", description: "" });
+  deckRpc({
+    kind: "add",
+    targets: [deckA],
+    ids: rows.slice(0, 700).map((v) => v.id),
+  });
+  deckRpc({
+    kind: "add",
+    targets: [deckB],
+    ids: rows.slice(500, 1200).map((v) => v.id),
+  });
+  const union = resolveDeck([deckB, deckA]);
+  if (union.ids.length !== 1200 || new Set(union.ids).size !== 1200)
+    throw new Error("Deck union duplicated or truncated entries");
+  const groups = resolveDeck([deckA, deckB], [1, 13]);
+  if (
+    JSON.stringify(groups.ids) !==
+    JSON.stringify([...union.ids.slice(0, 20), ...union.ids.slice(240, 260)])
+  )
+    throw new Error("Deck groups were sliced before union");
+  deckRpc({ kind: "add", targets: [deckA], ids: [rows[0].id, rows[0].id] });
+  if (resolveDeck([deckA, deckB]).fingerprint !== union.fingerprint)
+    throw new Error("Duplicate membership changed source revision");
+  const otherActor =
+    "set role authenticated;set request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';";
+  if (
+    sql(`${otherActor}select count(*) from public.decks;`) !== "0" ||
+    sql(`${otherActor}select count(*) from public.deck_entries;`) !== "0"
+  )
+    throw new Error("Deck RLS leaked ownership");
+  let denied = 0;
+  for (const query of [
+    `${otherActor}select public.deck_resolve(array['${deckA}']);`,
+    `${otherActor}select public.deck_mutate(${literal({ kind: "add", targets: [deckA], ids: [rows[800].id] })});`,
+    `${actor}select public.deck_mutate(${literal({ kind: "add", targets: [deckA, randomUUID()], ids: [rows[800].id] })});`,
+    `${actor}select public.deck_mutate(${literal({ kind: "update", id: deckA, revision: 0, name: "Stale", description: "" })});`,
+    `${actor}select public.practice_create_before_decks('{}');`,
+    `set role anon;select public.deck_list();`,
+  ]) {
+    try {
+      sql(query);
+    } catch {
+      denied++;
+    }
+  }
+  if (denied !== 6 || resolveDeck([deckA]).ids.length !== 700)
+    throw new Error(
+      "Deck authorization, revision or all-or-nothing insertion failed",
+    );
+  const page = JSON.parse(
+    sql(
+      `${actor}select public.deck_words(array['${deckA}','${deckB}'],'','','',36,30);`,
+    ),
+  );
+  if (
+    page.total !== 1200 ||
+    page.items.length !== 30 ||
+    page.items[0].id !== union.ids[1050]
+  )
+    throw new Error("Deck word pagination lost rows after 1000");
+  const searched = JSON.parse(
+    sql(
+      `${actor}select public.deck_words(array['${deckA}','${deckB}'],'爱 好','','',1,30);`,
+    ),
+  );
+  if (!searched.items.some((v: { id: string }) => v.id === rows[1].id))
+    throw new Error("Deck search did not normalize whitespace");
+  if (
+    JSON.parse(
+      sql(
+        `${actor}select public.deck_words(array['${deckA}','${deckB}'],'%','','',1,30);`,
+      ),
+    ).total !== 0
+  )
+    throw new Error("Deck search treated wildcard input as a filter bypass");
+  const frozenInput = {
+    // A grouped source is frozen by the practice transaction below.
+    requestId: randomUUID(),
+    source: {
+      kind: "decks",
+      refs: [deckA, deckB],
+      fingerprint: union.fingerprint,
+      groups: [1, 13],
+    },
+    mode: "learn",
+    direction: "mixed",
+    language: "en",
+    lessonSize: 20,
+    exerciseTypes: ["meaning_choice"],
+  };
+  const frozen = JSON.parse(
+    sql(`${actor}select public.practice_create(${literal(frozenInput)});`),
+  );
+  if (frozen.total !== 40 || frozen.source.kind !== "decks")
+    throw new Error("Deck practice source was not preserved");
+  let rejectedTypes = false;
+  try {
+    sql(
+      `${actor}select public.practice_create(${literal({ ...frozenInput, exerciseTypes: ["matching"] })});`,
+    );
+  } catch {
+    rejectedTypes = true;
+  }
+  if (!rejectedTypes)
+    throw new Error("Reused deck request bypassed MCQ type validation");
+  const frozenIds = JSON.parse(
+    sql(
+      `select jsonb_agg(vocabulary_id order by vocabulary_id) from public.practice_questions where session_id='${frozen.id}';`,
+    ),
+  );
+  if (JSON.stringify(frozenIds) !== JSON.stringify([...groups.ids].sort()))
+    throw new Error("Deck practice froze the wrong IDs");
+  deckRpc({ kind: "remove", id: deckA, ids: [rows[0].id] });
+  let changed = false;
+  try {
+    resolveDeck([deckA, deckB], undefined, union.fingerprint);
+  } catch {
+    changed = true;
+  }
+  if (!changed) throw new Error("Changed source was silently accepted");
+  const metadata = JSON.parse(sql(`${actor}select public.deck_list();`));
+  deckRpc({
+    kind: "delete",
+    id: deckA,
+    revision: metadata.find((d: { id: string }) => d.id === deckA).revision,
+  });
+  deckRpc({
+    kind: "delete",
+    id: deckB,
+    revision: metadata.find((d: { id: string }) => d.id === deckB).revision,
+  });
+  if (
+    JSON.parse(
+      sql(`${actor}select public.practice_create(${literal(frozenInput)});`),
+    ).id !== frozen.id
+  )
+    throw new Error("Creation retry re-resolved a deleted deck");
+  if (
+    JSON.parse(sql(`${actor}select public.practice_read('${frozen.id}');`))
+      .session.total !== 40
+  )
+    throw new Error("Deleting a deck deleted active practice");
+  if (
+    sql("select count(*) from public.vocabulary;") !== "11092" ||
+    sql("select count(*) from public.deck_entries;") !== "0"
+  )
+    throw new Error(
+      "Deck delete affected vocabulary or retained orphan memberships",
+    );
+  console.log(
+    "PASS: deck union/grouping, 1200-row pagination, duplicate membership, RLS, denied foreign writes, atomic destinations, stale edits, source fingerprints, frozen practice and delete-safe creation retries.",
+  );
+  const afterDecks = sql(
+    "select md5(coalesce(string_agg(row_to_json(t)::text,'' order by user_id,vocabulary_id),'')) from public.user_vocabulary t;",
+  );
+  if (before !== after || before !== afterDecks)
     throw new Error("Practice modified vocabulary progress");
   sql(
     `${actor}select public.practice_mark_difficult('${sid}',array['${retryId}']);`,

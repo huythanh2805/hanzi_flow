@@ -24,6 +24,7 @@ import {
 import { Button } from "./ui/button";
 import { bands, type Filters, type PageResult } from "@/lib/domain/types";
 import { number } from "@/lib/utils";
+import { AddToDecksButton } from "./decks/add-dialog";
 const initialFilters: Filters = {
   query: "",
   band: "",
@@ -40,11 +41,13 @@ export function VocabularyLibrary({
   band = "",
   topic = "",
   embedded = false,
+  picker,
 }: {
   initial: PageResult;
   band?: string;
   topic?: string;
   embedded?: boolean;
+  picker?: { ids: string[]; onChange: (ids: string[]) => void };
 }) {
   const { bootstrap, progress, preferences, ready, pending, mutate, notify } =
     useLearning();
@@ -57,6 +60,9 @@ export function VocabularyLibrary({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
+  const [ownSelection, setOwnSelection] = useState<string[]>([]);
+  const selected = picker?.ids ?? ownSelection,
+    setSelected = picker?.onChange ?? setOwnSelection;
   const lastRequest = useRef(0);
   const change = useCallback(
     (patch: Partial<Filters>) =>
@@ -233,6 +239,43 @@ export function VocabularyLibrary({
             </select>
           </label>
         </div>
+        <div className="deck-library-selection">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              aria-label="Chọn tất cả từ trên trang"
+              checked={
+                result.items.length > 0 &&
+                result.items.every((v) => selected.includes(v.id))
+              }
+              disabled={!ready || loading}
+              onChange={(e) =>
+                setSelected(
+                  e.target.checked
+                    ? [
+                        ...new Set([
+                          ...selected,
+                          ...result.items.map((v) => v.id),
+                        ]),
+                      ]
+                    : selected.filter(
+                        (id) => !result.items.some((v) => v.id === id),
+                      ),
+                )
+              }
+            />
+            Chọn trang này
+          </label>
+          <span>{selected.length} từ đã chọn</span>
+          <Button
+            variant="ghost"
+            disabled={!selected.length}
+            onClick={() => setSelected([])}
+          >
+            Bỏ chọn từ
+          </Button>
+          {!picker && <AddToDecksButton ids={selected} disabled={!ready} />}
+        </div>
         {error ? (
           <div className="inline-error" role="alert">
             <p>{error}</p>
@@ -249,6 +292,9 @@ export function VocabularyLibrary({
             <table className="vocabulary-table">
               <thead>
                 <tr>
+                  <th>
+                    <span className="sr-only">Chọn từ</span>
+                  </th>
                   <th className="bookmark-column">
                     <Bookmark size={14} />
                     <span className="sr-only">Lưu</span>
@@ -265,6 +311,11 @@ export function VocabularyLibrary({
                   <th>
                     <span className="sr-only">Đánh dấu đã học</span>
                   </th>
+                  {!picker && (
+                    <th>
+                      <span className="sr-only">Bộ từ</span>
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -272,6 +323,21 @@ export function VocabularyLibrary({
                   const p = progress[v.id];
                   return (
                     <tr key={v.id}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          aria-label={`Chọn ${v.word} (${v.id})`}
+                          checked={selected.includes(v.id)}
+                          disabled={!ready || loading}
+                          onChange={(e) =>
+                            setSelected(
+                              e.target.checked
+                                ? [...new Set([...selected, v.id])]
+                                : selected.filter((id) => id !== v.id),
+                            )
+                          }
+                        />
+                      </td>
                       <td>
                         <button
                           className={`bookmark-button ${p?.favorite ? "is-saved" : ""}`}
@@ -368,6 +434,15 @@ export function VocabularyLibrary({
                           <Check size={16} />
                         </button>
                       </td>
+                      {!picker && (
+                        <td>
+                          <AddToDecksButton
+                            ids={[v.id]}
+                            label="Vào bộ"
+                            disabled={!ready}
+                          />
+                        </td>
+                      )}
                     </tr>
                   );
                 })}

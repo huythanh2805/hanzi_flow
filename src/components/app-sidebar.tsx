@@ -42,10 +42,9 @@ const learn = [
 ];
 const personal = [
   {
-    href: "/roadmap#decks",
+    href: "/decks",
     label: "Bộ từ của tôi",
     icon: FolderHeart,
-    later: true,
   },
   {
     href: "/roadmap#analytics",

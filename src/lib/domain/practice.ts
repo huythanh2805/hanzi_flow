@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { bands, type Vocabulary, type ProgressMap, type Sense } from "./types";
 import { entryId } from "./validation";
+import { deckSourceSchema } from "./decks";
 export const exerciseTypes = [
   "meaning_choice",
   "listening_choice",
@@ -13,6 +14,7 @@ export type ChoiceSnapshot = Pick<
 >;
 
 export const practiceSourceSchema = z.discriminatedUnion("kind", [
+  deckSourceSchema,
   z.object({ kind: z.literal("band"), band: z.enum(bands) }).strict(),
   z
     .object({
@@ -267,6 +269,8 @@ export function selectPracticeIds(
   progress: ProgressMap = {},
   parentIds?: string[],
 ): string[] {
+  if (source.kind === "decks")
+    throw new Error("Nguồn bộ từ cần được xác thực trước khi tạo bài.");
   const sorted = [...rows].sort(
     (a, b) =>
       practiceRank(a.band) - practiceRank(b.band) ||

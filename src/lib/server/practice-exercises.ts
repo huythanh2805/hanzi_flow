@@ -56,13 +56,28 @@ export async function cloudExerciseRecipe(input: PracticeStart) {
     source_order: v.sourceOrder,
     topics: v.topics,
   })) as Vocabulary[];
-  const ids = selectPracticeIds(
-    rows,
-    input.source,
-    input.lessonSize,
-    progress,
-    parentIds,
-  );
+  let deckTitle: string | undefined;
+  let deckIds: string[] | undefined;
+  if (input.source.kind === "decks") {
+    const r = await db.rpc("deck_resolve", {
+      p_refs: input.source.refs,
+      p_groups: input.source.groups ?? null,
+      p_size: input.lessonSize,
+      p_expected: input.source.fingerprint ?? null,
+    });
+    if (r.error) throw new Error(r.error.message);
+    deckIds = r.data.ids;
+    deckTitle = r.data.title;
+  }
+  const ids =
+    deckIds ??
+    selectPracticeIds(
+      rows,
+      input.source,
+      input.lessonSize,
+      progress,
+      parentIds,
+    );
   return {
     ...buildExerciseQuestions(
       lexicon,
@@ -73,6 +88,7 @@ export async function cloudExerciseRecipe(input: PracticeStart) {
       input.exerciseTypes,
     ),
     owner: auth.user.id,
+    deckTitle,
   };
 }
 export async function installCloudExercises(
@@ -91,6 +107,7 @@ export async function installCloudExercises(
     p_input: {
       ...input,
       exerciseTypes: normalizedExerciseTypes(input.exerciseTypes),
+      deckTitle: recipe.deckTitle,
     },
     p_questions: recipe.questions,
     p_queue: exerciseSessionState(recipe.questions).learningQueue,

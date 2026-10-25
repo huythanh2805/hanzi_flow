@@ -18,6 +18,7 @@ import { SpeakButton, StatusBadge } from "./common";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import type { Vocabulary } from "@/lib/domain/types";
+import { AddToDecksButton } from "./decks/add-dialog";
 export function VocabularyDetail({
   vocabulary: v,
 }: {
@@ -285,6 +286,7 @@ export function VocabularyDetail({
         <aside className="detail-aside">
           <Card>
             <h2>Học theo cách của bạn</h2>
+            <AddToDecksButton ids={[v.id]} disabled={!ready}/>
             <Button asChild>
               <Link href={`/flashcards?entry=${v.id}`}>
                 <Layers3 size={17} />

@@ -13,18 +13,21 @@ import { FlashcardActions } from "./flashcards/flashcard-actions";
 import { ShortcutHints } from "./flashcards/shortcut-hints";
 import type { StudyMode as Mode } from "./flashcards/types";
 import { bands, type Filters, type Vocabulary } from "@/lib/domain/types";
+import { AddToDecksButton } from "./decks/add-dialog";
 export function Flashcards({
   initial,
   initialBand = "",
   initialTopic = "",
   lesson = 1,
   singleEntry = false,
+  frozenSource,
 }: {
   initial: Vocabulary[];
   initialBand?: string;
   initialTopic?: string;
   lesson?: number;
   singleEntry?: boolean;
+  frozenSource?: { title: string; onPractice: (ids: string[]) => void };
 }) {
   const { bootstrap, progress, preferences, pending, ready, mutate, notify } =
     useLearning();
@@ -51,6 +54,7 @@ export function Flashcards({
   const groupLoading =
     bootstrap.mode === "trial" &&
     !singleEntry &&
+    !frozenSource &&
     (!ready || groupState?.key !== groupKey);
   const groupError = groupState?.key === groupKey ? groupState.error : "";
   const [activeLesson, setActiveLesson] = useState(lesson);
@@ -63,7 +67,8 @@ export function Flashcards({
   const v = eligible[index];
   const p = v ? progress[v.id] : undefined;
   useEffect(() => {
-    if (!ready || bootstrap.mode !== "trial" || singleEntry) return;
+    if (!ready || bootstrap.mode !== "trial" || singleEntry || frozenSource)
+      return;
     const controller = new AbortController();
     const filters: Filters = {
       query: "",
@@ -106,6 +111,7 @@ export function Flashcards({
     lesson,
     preferences.lessonSize,
     groupKey,
+    frozenSource,
   ]);
   useEffect(() => {
     mounted.current = true;
@@ -192,6 +198,22 @@ export function Flashcards({
   async function load() {
     setLoading(true);
     try {
+      if (frozenSource) {
+        setCards(
+          initial.filter(
+            (v) =>
+              (!favoritesOnly || progress[v.id]?.favorite) &&
+              (!difficultOnly || progress[v.id]?.difficult),
+          ),
+        );
+        setIndex(0);
+        setRevealed(false);
+        setFinished(false);
+        setSessionStudied([]);
+        setRetryIds([]);
+        setOptions(false);
+        return;
+      }
       const filters: Filters = {
         query: "",
         band: selectedBand,
@@ -247,34 +269,38 @@ export function Flashcards({
       />
       {options && (
         <div className="card flashcard-options" id="study-options">
-          <label>
-            HSK Band
-            <select
-              value={selectedBand}
-              onChange={(e) => setSelectedBand(e.target.value)}
-            >
-              <option value="">Tất cả Band</option>
-              {bands.map((b) => (
-                <option key={b} value={b}>
-                  Band {b}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Chủ đề
-            <select
-              value={selectedTopic}
-              onChange={(e) => setSelectedTopic(e.target.value)}
-            >
-              <option value="">Tất cả chủ đề</option>
-              {bootstrap.topics.map((t) => (
-                <option value={t.id} key={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          {!frozenSource && (
+            <>
+              <label>
+                HSK Band
+                <select
+                  value={selectedBand}
+                  onChange={(e) => setSelectedBand(e.target.value)}
+                >
+                  <option value="">Tất cả Band</option>
+                  {bands.map((b) => (
+                    <option key={b} value={b}>
+                      Band {b}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Chủ đề
+                <select
+                  value={selectedTopic}
+                  onChange={(e) => setSelectedTopic(e.target.value)}
+                >
+                  <option value="">Tất cả chủ đề</option>
+                  {bootstrap.topics.map((t) => (
+                    <option value={t.id} key={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </>
+          )}
           <label>
             Chế độ
             <select
@@ -314,7 +340,9 @@ export function Flashcards({
           </Button>
           <p className="content-note">
             Chế độ nghĩa chỉ sử dụng các thẻ có nghĩa trong nhóm từ đang chọn.
-            Mỗi buổi lấy tối đa {preferences.lessonSize} từ.
+            {frozenSource
+              ? "Giữ nguyên tập từ đã chọn từ Bộ từ của tôi."
+              : `Mỗi buổi lấy tối đa ${preferences.lessonSize} từ.`}
           </p>
         </div>
       )}
@@ -344,14 +372,29 @@ export function Flashcards({
               : "Tiến độ đã lưu trên trình duyệt này."}
           </p>
           <div className="summary-actions">
-            <Button asChild variant="outline">
-              <Link
-                href={`/practice?entries=${encodeURIComponent(eligible.map((card) => card.id).join(","))}`}
+            <AddToDecksButton
+              ids={eligible.map((v) => v.id)}
+              label="Thêm nhóm vừa học vào bộ"
+            />
+            {frozenSource ? (
+              <Button
+                variant="outline"
+                onClick={() =>
+                  frozenSource.onPractice(eligible.map((v) => v.id))
+                }
               >
-                Luyện nhóm vừa học
-                <ArrowRight size={16} />
-              </Link>
-            </Button>
+                Luyện nhóm vừa học <ArrowRight size={16} />
+              </Button>
+            ) : (
+              <Button asChild variant="outline">
+                <Link
+                  href={`/practice?entries=${encodeURIComponent(eligible.map((card) => card.id).join(","))}`}
+                >
+                  Luyện nhóm vừa học
+                  <ArrowRight size={16} />
+                </Link>
+              </Button>
+            )}
             <Button
               onClick={() => {
                 setIndex(0);
@@ -392,19 +435,23 @@ export function Flashcards({
         <div className="study-workspace">
           <StudyProgress
             href={
-              initialTopic
-                ? `/topics/${initialTopic}`
-                : initialBand
-                  ? `/bands/${initialBand}`
-                  : "/vocabulary"
+              frozenSource
+                ? "/decks"
+                : initialTopic
+                  ? `/topics/${initialTopic}`
+                  : initialBand
+                    ? `/bands/${initialBand}`
+                    : "/vocabulary"
             }
             label={
-              initialTopic
-                ? (bootstrap.topics.find((t) => t.id === initialTopic)?.name ??
-                  "Buổi học của bạn")
-                : initialBand
-                  ? `Band ${initialBand} · Nhóm ${activeLesson}`
-                  : "Buổi học của bạn"
+              frozenSource
+                ? frozenSource.title
+                : initialTopic
+                  ? (bootstrap.topics.find((t) => t.id === initialTopic)
+                      ?.name ?? "Buổi học của bạn")
+                  : initialBand
+                    ? `Band ${initialBand} · Nhóm ${activeLesson}`
+                    : "Buổi học của bạn"
             }
             current={index + 1}
             total={eligible.length}
@@ -417,6 +464,7 @@ export function Flashcards({
             favorite={p?.favorite ?? false}
             onBookmark={() => void mutate(v.id, { favorite: !p?.favorite })}
             disabled={!ready || !!pending[v.id]}
+            extra={<AddToDecksButton ids={[v.id]} disabled={!ready} />}
           />
           <FlashcardPanel
             vocabulary={v}

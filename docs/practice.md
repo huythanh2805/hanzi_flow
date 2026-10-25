@@ -16,6 +16,8 @@ Implementation order: (1) reusable frozen activity generation and validation, (2
 
 Routes: `/practice`, `/practice/[sessionId]`, `/practice/[sessionId]/result`. Entry points also appear on Band/topic collections and the Flashcards summary. Practice uses plain shared charcoal cards; only Flashcards have their own scene background.
 
+Personal decks are now another source under **Từ của bạn**: select custom and/or automatic collections, union canonical IDs, then choose the complete set or multiple groups. The source and questions freeze at creation and survive source deletion. See [personal decks](decks.md). Flashcards can hand off a large frozen selection with a tab-local selection UUID instead of placing vocabulary IDs in the URL.
+
 Choose multiple source-order groups within one Band/topic, a complete Band, or learned/favorite/difficult entries. Groups use the saved lesson size; checkboxes persist across pages and clear when changing collection or group size. Complete Bands include all canonical IDs, including unstudied entries and repeated spellings. Learning is the group default; exams are the complete-Band default. Direction defaults to mixed and meaning language to the account setting.
 
 Every selected ID appears once. Creation validates the entire source before publishing a session. Four distinct choices come from the same Band, then lower Bands, excluding repeated spellings, labels and intersecting normalized meaning aliases. Pinyin disambiguates homograph prompts. Content snapshots retain source/sense and machine translation metadata. This is a deterministic lexical ambiguity filter, not teacher review of every dictionary gloss.

@@ -17,6 +17,8 @@
     "test:practice-database": "tsx scripts/test-practice-database.ts",
     "test:practice-cloud": "node --import tsx --env-file-if-exists=.env.local scripts/test-practice-cloud.ts",
     "test:practice-exercises-cloud": "node --import tsx --env-file-if-exists=.env.local scripts/test-practice-exercises-cloud.ts",
+    "test:decks-cloud": "node --import tsx --env-file-if-exists=.env.local scripts/test-decks-cloud.ts",
+    "test:decks-database": "tsx scripts/test-practice-database.ts",
     "test:cloud": "node --import tsx --env-file-if-exists=.env.local scripts/test-cloud.ts",
     "data:prepare": "tsx scripts/prepare-data.ts",
     "data:import": "tsx --env-file-if-exists=.env.local scripts/import-data.ts",

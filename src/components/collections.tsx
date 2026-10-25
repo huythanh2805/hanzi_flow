@@ -39,6 +39,7 @@ import { bands, type PageResult, type Topic } from "@/lib/domain/types";
 import { aggregateProgress } from "@/lib/domain/catalogue";
 import { number } from "@/lib/utils";
 import { VocabularyLibrary } from "./vocabulary-library";
+import { AddToDecksButton } from "./decks/add-dialog";
 const icons: Record<string, LucideIcon> = {
   MessagesSquare,
   House,
@@ -258,6 +259,7 @@ export function CollectionDetail({
             : topic!.description
         }
       >
+        <AddToDecksButton ids={ids} label="Thêm bộ từ này vào bộ riêng" />
         <Button asChild variant="outline" disabled={!total}>
           <Link href={`/practice?${query}`}>
             Luyện tập
@@ -358,28 +360,33 @@ export function CollectionDetail({
                     );
                     const done = aggregateProgress(lessonIds, progress);
                     return (
-                      <Link
-                        key={index}
-                        href={`/flashcards?${query}&lesson=${index + 1}`}
-                        className="card lesson-card"
-                      >
-                        <span
-                          className={`lesson-number ${done.studied === lessonIds.length ? "complete" : ""}`}
+                      <div key={index} className="deck-collection-group">
+                        <Link
+                          href={`/flashcards?${query}&lesson=${index + 1}`}
+                          className="card lesson-card"
                         >
-                          {done.studied === lessonIds.length ? (
-                            <Check size={18} />
-                          ) : (
-                            String(index + 1).padStart(2, "0")
-                          )}
-                        </span>
-                        <div>
-                          <h3>Nhóm từ {index + 1}</h3>
-                          <p>
-                            {lessonIds.length} từ · {done.studied} đã học
-                          </p>
-                        </div>
-                        <ChevronRight size={17} />
-                      </Link>
+                          <span
+                            className={`lesson-number ${done.studied === lessonIds.length ? "complete" : ""}`}
+                          >
+                            {done.studied === lessonIds.length ? (
+                              <Check size={18} />
+                            ) : (
+                              String(index + 1).padStart(2, "0")
+                            )}
+                          </span>
+                          <div>
+                            <h3>Nhóm từ {index + 1}</h3>
+                            <p>
+                              {lessonIds.length} từ · {done.studied} đã học
+                            </p>
+                          </div>
+                          <ChevronRight size={17} />
+                        </Link>
+                        <AddToDecksButton
+                          ids={lessonIds}
+                          label={`Thêm nhóm ${index + 1} vào bộ`}
+                        />
+                      </div>
                     );
                   },
                 )}
