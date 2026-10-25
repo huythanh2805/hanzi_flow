@@ -8,14 +8,20 @@ import {
   useState,
 } from "react";
 import { CheckCircle2, X, AlertCircle } from "lucide-react";
-import { savePreferences, updateVocabulary } from "@/app/actions";
+import {
+  savePreferences,
+  updateVocabulary,
+  markPracticeWordsDifficult,
+} from "@/app/actions";
 import { applyProgress } from "@/lib/domain/progress";
+import { actionValue } from "@/lib/domain/action-result";
 import { preferencesSchema } from "@/lib/domain/validation";
 import type {
   Bootstrap,
   Preferences,
   ProgressMap,
   ProgressPatch,
+  Progress,
 } from "@/lib/domain/types";
 const storageKey = "hanziflow.trial.v1";
 type Store = {
@@ -25,6 +31,7 @@ type Store = {
   ready: boolean;
   pending: Record<string, boolean>;
   mutate: (id: string, patch: ProgressPatch) => Promise<boolean>;
+  markPracticeDifficult: (sessionId: string, ids: string[]) => Promise<boolean>;
   updatePreferences: (preferences: Preferences) => Promise<boolean>;
   notify: (message: string, error?: boolean) => void;
 };
@@ -157,6 +164,50 @@ export function LearningProvider({
     },
     [bootstrap.mode, ready, notify],
   );
+  const markPracticeDifficult = useCallback(
+    async (sessionId: string, ids: string[]) => {
+      const unique = [...new Set(ids)];
+      if (
+        !ready ||
+        !unique.length ||
+        unique.some((id) => locks.current.has(id))
+      )
+        return false;
+      unique.forEach((id) => locks.current.add(id));
+      try {
+        const rows: Progress[] =
+          bootstrap.mode === "cloud"
+            ? actionValue(await markPracticeWordsDifficult(sessionId, unique))
+            : unique.map((id) =>
+                applyProgress(current.current.progress[id], id, {
+                  difficult: true,
+                }),
+              );
+        const updated = { ...current.current.progress };
+        rows.forEach((row) => {
+          updated[row.vocabulary_id] = row;
+        });
+        if (bootstrap.mode === "trial")
+          localStorage.setItem(
+            storageKey,
+            JSON.stringify({ ...current.current, progress: updated }),
+          );
+        current.current.progress = updated;
+        setProgress(updated);
+        notify(`Đã lưu ${unique.length} từ vào Từ khó.`);
+        return true;
+      } catch (error) {
+        notify(
+          error instanceof Error ? error.message : "Không lưu được từ khó.",
+          true,
+        );
+        return false;
+      } finally {
+        unique.forEach((id) => locks.current.delete(id));
+      }
+    },
+    [bootstrap.mode, ready, notify],
+  );
   const updatePrefs = useCallback(
     async (input: Preferences) => {
       try {
@@ -191,6 +242,7 @@ export function LearningProvider({
         ready,
         pending,
         mutate,
+        markPracticeDifficult,
         updatePreferences: updatePrefs,
         notify,
       }}

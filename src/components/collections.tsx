@@ -258,6 +258,12 @@ export function CollectionDetail({
             : topic!.description
         }
       >
+        <Button asChild variant="outline" disabled={!total}>
+          <Link href={`/practice?${query}`}>
+            Luyện tập
+            <ArrowRight size={16} />
+          </Link>
+        </Button>
         <Button asChild disabled={!total}>
           <Link href={total ? `/flashcards?${query}` : "#collection-words"}>
             <BookOpen size={17} />

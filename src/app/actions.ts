@@ -12,6 +12,7 @@ import {
 import type { Preferences, Progress, ProgressPatch } from "@/lib/domain/types";
 import { siteUrl } from "@/lib/site-url";
 import { z } from "zod";
+import type { ActionResult } from "@/lib/domain/action-result";
 
 async function requireUser() {
   if (!supabaseConfigured()) throw new Error("Supabase chưa được cấu hình.");
@@ -47,6 +48,32 @@ export async function savePreferences(input: Preferences) {
   if (error) throw new Error(`Không lưu được cài đặt: ${error.message}`);
   revalidatePath("/", "layout");
   return preferences;
+}
+export async function markPracticeWordsDifficult(
+  id: string,
+  ids: string[],
+): Promise<ActionResult<Progress[]>> {
+  try {
+    z.uuid().parse(id);
+    z.array(entryId).min(1).max(11092).parse(ids);
+    const { db } = await requireUser();
+    const { data, error } = await db.rpc("practice_mark_difficult", {
+      p_id: id,
+      p_ids: ids,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true, data };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof z.ZodError
+          ? "Danh sách từ không hợp lệ."
+          : error instanceof Error
+            ? error.message
+            : "Không lưu được từ khó. Hãy thử lại.",
+    };
+  }
 }
 export async function authenticate(input: {
   email: string;

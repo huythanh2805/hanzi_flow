@@ -1,5 +1,75 @@
 # Executed validation — 2026-10-25
 
+## Single repeat button
+
+Removed the duplicate Hỏi lại button and its helper block below learning answers, together with the unused CSS. The single **Hỏi lại lượt sau** action remains in the card toolbar and keeps its existing skip/random-queue behavior. Updated browser/cloud checks to use that action; browser setup now asserts exactly one repeat action and no lower helper block. All nine practice browser tests, strict typecheck and ESLint passed. No backend or grading changes were made.
+
+## Unified Hỏi lại controls
+
+The learning-card toolbar's **Hỏi lại lượt sau** now invokes the same defer handler and disabled rules as the lower **Hỏi lại** button. Both advance immediately, without requiring an answer, and queue the word at a random future position in the current session. The toolbar control uses the repeat icon and is no longer an aria-pressed bookmark toggle. An already graded word keeps its first score and uses the existing supplemental repeat state. Exam review remains a bookmark toggle.
+
+Passed: all nine practice browser tests, including both buttons before answering, the toolbar button after a wrong answer, queue deduplication, first-score preservation and reload; 78 unit/component tests, strict typecheck, ESLint and optimized build. A disposable Supabase QA account on actual localhost:3000 additionally verified top→skip, bottom→skip, wrong→top→repeat queue, unchanged first score, reload and mobile layout. The account and its cascading records were removed in `finally`; the existing app/server and user data were retained. No database migration was needed.
+
+## Random repeat position across the full remaining queue
+
+Expanded Hỏi lại insertion from the former 1–3-question window to every future position, including the tail. A 32-bit request-UUID seed chooses and fixes the position across retries, reloads and devices. When another question exists, it appears before the repeated word so skipping does not immediately show the same word. Existing queues, first answers, scoring and repeat counters are retained.
+
+Applied `202610250007_practice_random_repeat_position.sql`, saved SQL Editor query `b6091c84-8de8-4121-8c51-7926c82b5a1b`. This replaces only the insertion-slot calculation in the existing transactional commit and adds a private immutable helper. Unit tests cover all 20 possible future positions, unsigned high-bit seeds and empty/single-item queues. Local PostgreSQL checks parity with the browser at remaining lengths 0/1/20/5,636, plus existing ownership, replay, score and repeat invariants. All 78 unit/component tests and eight practice browser tests passed, including reload, random queue traversal, correct-answer Quick mode, repeat grading and complete Band loading. Strict typecheck and ESLint passed.
+
+The optimized build passed. The live Supabase/browser script passed against production on localhost:3101, explicitly checking repeat positions 1 and 20 (the tail), identical-event replay preserving one queued word, resume across two browser contexts, Quick mode, repeat grading and immutable first-round results. Its disposable QA accounts and cascading records were removed; the temporary production server and isolated PostgreSQL cluster were stopped. The owner's localhost:3000 app remains running.
+
+## Wrong-answer repeats interleaved with remaining questions
+
+**Hỏi lại** now appears after a wrong learning answer as well as before answering. Scheduling inserts one pending occurrence after 1–3 other questions and before the tail whenever at least two others remain. Returning words hide their old selection/feedback and accept a separate repeat response. Original answers, first-round correct/wrong counts and canonical question totals remain immutable; supplemental counts are shown separately. Quick mode includes repeats when deciding whether to advance or finish. Results consistently show the original choice/correctness, even if a later repeat was correct.
+
+Applied `202610250006_practice_interleaved_repeats.sql`, saved SQL Editor query `73a2dd6e-2201-4ec0-83e5-5cf938ad334b`. It adds a lazily initialized session queue, repeat state on practice answers and separate repeat counters. Owner checks, row locks, strict command validation, event replay and stale-revision handling remain in the transactional RPC. No lexical or learning-progress data was changed.
+
+Passed: 77 unit/component tests; all 17 browser tests, including wrong→schedule→reload→interleaved repeat→correct answer with unchanged first score, ordinary deferrals, Quick mode, exam secrecy, full Band loading and Flashcards regressions; strict typecheck, ESLint and optimized build. The isolated PostgreSQL suite passed with all 11,092 real entries, including interleaving before the tail, first-answer immutability, repeat counters, identical-event replay without duplicate grading, owner isolation and unchanged shared learning progress.
+
+The live Supabase/browser script passed against the optimized production server, with two isolated browser contexts resuming the same queue, hidden old answers during a repeat, Quick mode advancing from a correctly repeated word, separate repeat totals and first-round results retaining the original wrong choice. Temporary QA accounts and their cascading rows were removed. Screenshot: ignored `.local-tests/practice-repeat-after-wrong.png`. The temporary production server and isolated database cluster were stopped; localhost:3000 remains running.
+
+## Controls visible in an active learning card
+
+Moved Quick mode into the question-card toolbar and made **Hỏi lại lượt sau** visible there before any answer as well as after grading. Removed the feedback-only render condition; marking uses the existing revisioned mark command, leaves the question unanswered and does not navigate. The existing **Hỏi lại** skip/defer action remains below the options. Exam review behavior is retained.
+
+A fresh isolated browser on the actual localhost:3000 initially confirmed Quick mode and defer were present while the later-round marker was absent before answering. The reported browser screenshot showed older controls, so the verified project dev processes were restarted on the same port after the UI correction. A disposable cloud QA account then checked both toolbar controls before answering, marking without grading, persistence on reload, visibility on question 2 after a wrong first answer, working Quick mode and mobile layout without overflow or browser errors. Screenshots: ignored `.local-tests/practice-controls-after-desktop.png` and `practice-controls-after-mobile.png`. The QA account and its cascading records were deleted; no existing account/session was accessed. The restarted localhost:3000 server remains running.
+
+All seven practice browser tests passed, including marking before an answer/reload, deferred queues, both Quick mode cases, exam secrecy and full 5,636-question loading. All 75 unit/component tests, strict typecheck, ESLint and the optimized build passed.
+
+## Quick mode
+
+Added an optional learning-only Quick mode toggle in setup and inside active sessions. Correctness is read from the saved, graded response before advancing to the next pending question, including deferred words and the next 25-question batch. Wrong answers remain on their explanation. A final correct answer submits automatically; its submit event UUID is retained if finishing fails. The browser preference survives reload, with an in-memory fallback when storage is unavailable. Disabling the toggle preserves manual feedback, and exams do not expose or use Quick mode. No database or scoring change was needed.
+
+Passed: strict typecheck, ESLint, 75 unit/component tests, the 15-case browser regression suite, the refined six practice cases and both focused Quick mode cases (including a complete 26-question session crossing the batch boundary). The optimized build passed. Live Supabase checks passed on development and production; the production run also deliberately blocked the automatic final submit, confirmed all three answers were already saved with two correct, then retried to produce one unchanged result. Other checks cover a blocked answer save without advancing, retry advancing once, wrong-answer review, preference reload, deferred navigation, final automatic completion and disabling Quick mode.
+
+The test uses disposable QA accounts removed in `finally`, without touching existing user progress. The temporary production server was stopped and the owner's localhost:3000 development server retained.
+
+## In-session Hỏi lại queue
+
+The learning player now offers **Hỏi lại** before answering: the current word moves to the back of the unanswered queue and navigation advances immediately. After the remaining normal words, deferred words return with **Đang hỏi lại**. Deferral does not grade, duplicate questions or change the total. The last pending word cannot be deferred indefinitely. After grading, the separate **Luyện lại sau lượt đầu** flag still selects a future child session. Exams retain their existing review flags.
+
+Applied migration `202610250005_practice_defer.sql`, saved SQL Editor query `cad7673e-c2e8-4e92-a88f-80f196725fe6`. Existing sessions receive an empty queue; owner/revision/request replay checks remain transactional, and no existing vocabulary/progress/answers are rewritten. Browser trials remain backward compatible with existing IndexedDB records.
+
+Passed: 75 unit/component tests; 14 browser tests including actual skip→reload→answer remaining words→return to deferred word→submit; strict typecheck, ESLint and optimized build. The isolated PostgreSQL practice suite passed with all 11,092 entries, including deferred queue persistence, identical-event replay, last-word guard, no answer disclosure before answering and exactly-once grading. The live Supabase/browser check also passed deferred-word resume across two independent browser contexts, reload, returning after the other word and unchanged question totals/scores. Disposable QA accounts were removed after each live run.
+
+The updated cloud/browser script passed against both the existing development app and the optimized production server on localhost:3101. Temporary QA users, the production test server and the isolated database cluster were cleaned up; the owner's localhost:3000 server was retained.
+
+## Chinese and meaning practice
+
+Implemented the approved practice plan: real setup/player/results routes, multi-group selection within Band/topic, full Bands, personal word sets, learning/exam modes, frozen bilingual question snapshots, revisioned autosave, child retries and explicit difficult flags. Migration `202610250004_practice.sql` was applied to the connected Supabase project, saved SQL Editor query `c656cd68-0ed8-4f64-9d9c-0ee36c455b6e`. It creates four practice-only tables with RLS and transactional owner-checked RPCs; existing lexical/progress data was retained.
+
+Executed: 74 unit/component tests, strict typecheck, ESLint, production build and 13 browser tests including the nine existing Flashcards/catalogue/settings regressions. Isolated core PostgreSQL integration passed with all 11,092 entries/6,786 examples, as did the new practice SQL integration with all real bilingual senses. Practice SQL checks exact 500/5,636 canonical ID sets, homographs, owner isolation, direct/anonymous denial, hidden exam keys/grades, server scoring, forged-score rejection, duplicate events, stale revisions, immutable learning answers, early submission, separate retries and unchanged progress before explicitly marking difficult. Full 5,636-question SQL preparation measured approximately 2–3 seconds locally with per-query JIT disabled and cached Band candidate orders.
+
+Browser trial checks cover multiple group pages, frozen lesson size after settings changes, feedback/answer locking, modifier-safe keyboard shortcuts, exam edits/reload, early submission, result selection, separate retries, stale-tab rejection with retained draft, full 5,636-question chunked download and widths 320/390/768/1440 without horizontal overflow. Practice cards have no scene background.
+
+`npm run test:practice-cloud` verified actual remote Band 1 (500) and Band 7–9 English (5,636) exact ID sets using pagination beyond 1,000 rows, private exam keys, repeat creation and cross-owner denial. Two isolated browser contexts used the same disposable QA account for real Server Actions, failed network save/retry retaining the selection, conflicting revisions, resume on another device, hidden exam feedback, early submission, separate learning retry and mobile layout. Explicit difficult flags retained state NEW and null studied timestamps. Both temporary Auth accounts and cascading practice/profile/progress rows were deleted in `finally`; existing accounts were not used. Screenshot: ignored `.local-tests/practice-cloud-mobile.png`.
+
+Known preflight failure: the existing Vietnamese translation for `hsk30-b79-0367` is punctuation placeholders. Complete Band 7–9 Vietnamese is rejected with that ID; English has all 5,636 questions. No vocabulary was edited or silently omitted. See [practice](practice.md) for architecture and repeatable commands. Physical speech quality still depends on installed browser/device voices.
+
+The same live cloud/browser script also passed against the optimized production server on localhost:3101, including an actual Vietnamese preflight error shown in the setup UI. Production testing exposed React's redaction of thrown Server Action errors; expected errors now cross the boundary as typed result values, preserving conflict messages and missing-entry IDs. A scan of all 27 production browser JavaScript files found no administrative credential. Production validation used the separate `.next-e2e` build directory; temporary servers and the isolated PostgreSQL cluster were stopped while the owner's localhost:3000 server was retained.
+
+## Earlier validation
+
 All results below were actually executed on Windows, Node 22.13.0, Next.js 16.4.3, with the pinned source dataset.
 
 | Check                                | Result                                                                                    |

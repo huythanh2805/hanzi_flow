@@ -25,7 +25,7 @@ Licensed dictionaries (for example CC-CEDICT, after separately inspecting its cu
 
 ## Later phases
 
-Phase 2: multi-stage lessons, FSRS atomic scheduling and review queues, event-based daily plans, advanced flashcards, multiple choice/listening/typing and practice history. Phase 3: remaining exercises, recordings, decks, analytics/streaks, offline support and performance work. Do not implement all phases at once.
+Chinese↔meaning multiple choice and resumable practice history are implemented; see [practice](practice.md). Remaining Phase 2: multi-stage lessons, FSRS atomic scheduling/review queues, event-based daily plans, advanced flashcards, listening and typing. Phase 3: remaining exercises, recordings, decks, analytics/streaks and offline support.
 
 ## Review gates and test plan
 

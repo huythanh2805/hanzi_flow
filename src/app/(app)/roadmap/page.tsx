@@ -12,7 +12,8 @@ export default function RoadmapPage() {
       <h1>Đi xa, từ một nền tảng vững.</h1>
       <p>
         HanziFlow hiện tập trung vào thư viện, học theo Band/chủ đề và
-        flashcards cơ bản. Các phần dưới đây nằm trong giai đoạn tiếp theo.
+        flashcards và luyện chữ–nghĩa. Các phần dưới đây mô tả hướng phát triển
+        tiếp theo.
       </p>
       <section className="card" id="review">
         <span className="small-label">PHASE 2</span>
@@ -26,9 +27,12 @@ export default function RoadmapPage() {
         <span className="small-label">PHASE 2</span>
         <h2>Vận dụng điều đã học</h2>
         <p>
-          Bài học nhiều bước, trắc nghiệm, nghe và gõ từ. Bài tập chỉ dùng nội
-          dung có nguồn xác định.
+          Luyện chữ–nghĩa đã có thể sử dụng theo nhóm, toàn Band hoặc bộ từ cá
+          nhân. Luyện nghe và gõ từ sẽ được bổ sung sau.
         </p>
+        <Link className="text-link" href="/practice">
+          Mở Luyện tập →
+        </Link>
       </section>
       <section className="card" id="decks">
         <span className="small-label">PHASE 3</span>

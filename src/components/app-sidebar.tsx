@@ -29,10 +29,9 @@ const main = [
 const learn = [
   { href: "/flashcards", label: "Flashcards", icon: PanelsTopLeft },
   {
-    href: "/roadmap#practice",
+    href: "/practice",
     label: "Luyện tập",
     icon: Sparkles,
-    later: true,
   },
   {
     href: "/roadmap#review",

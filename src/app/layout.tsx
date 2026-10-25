@@ -5,6 +5,7 @@ import "./brand-theme.css";
 import "./lighting.css";
 import "./card-scenes.css";
 import "./flashcard-surface.css";
+import "./practice.css";
 import { AppAmbience, cardSceneStyle } from "@/components/app-ambience";
 export const metadata: Metadata = {
   title: {

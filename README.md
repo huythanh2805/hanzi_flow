@@ -17,7 +17,7 @@ Open http://localhost:3000. Without Supabase keys the application explicitly run
 ## Connect Supabase
 
 1. Copy `.env.example` to `.env.local` (do not overwrite an existing configured file). Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from Settings → API Keys. Use a publishable key, never a secret key in a NEXT_PUBLIC variable.
-2. Apply all SQL files in `supabase/migrations` in filename order. Core tables/RLS, automatic Auth profiles and enrichment provenance/Band guards are included. All three migrations have been applied to the connected project.
+2. Apply all SQL files in `supabase/migrations` in filename order. Core tables/RLS, automatic Auth profiles, enrichment provenance/Band guards, practice sessions and randomized learning repeats are included. All seven migrations have been applied to the connected project.
 3. Set server-only `SUPABASE_SECRET_KEY=sb_secret_...` locally for import. Legacy `SUPABASE_SERVICE_ROLE_KEY` is accepted for compatibility. Never commit or expose either. Runtime user requests only use the publishable key and session cookies.
 4. Run `npm run data:prepare`, `npm run data:enrichment`, `npm run data:import`. Re-running upserts catalogue IDs without touching user history. Source/seed upserts are repeatable but the whole multi-batch import is not one transaction; a failed run should be retried before exposing a fresh catalogue. The importer does not delete removed enrichment: publishing removals requires an explicit source-scoped migration/review.
 5. Enable Email/password in Supabase Authentication. Configure Site URL and allowed redirects: `http://localhost:3000/auth/callback` and the production equivalent. Signup uses PKCE. Keep confirmation enabled as desired. For Google OAuth, configure provider credentials in Supabase then set `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true`.
@@ -44,6 +44,7 @@ For local-only QA with a configured project, run the dev/test server with the tw
 - Seven Band collections and twenty database-driven topics; deterministic group size 10/15/20/25/30. Group progress shares global vocabulary progress.
 - Favorite, difficult, studied and suspension flags are independent. Studying through a topic updates the same Band entry. No manual false mastery.
 - Basic Chinese/pinyin and available meaning flashcards; reveal, shuffle, navigation, keyboard controls, pronunciation, mark studied, difficult retry and session summary.
+- Practice at `/practice`: bilingual Chinese↔meaning multiple choice, multi-group/topic selection, complete Bands and personal word sets; immediate learning feedback, optional Quick mode for correct-answer auto-advance, hidden-answer exams, resumable sessions, separate retries and explicit difficult flags. See [practice](docs/practice.md).
 - Validated account settings and persisted real progress; email/password, optional Google OAuth, SSR cookie refresh, logout and protected cloud routes.
 - Repeatable validated import, licensed dictionary/corpus provenance and explicit machine translation labels. Every imported example is rechecked against the target's lexical Band; the database rejects false token Bands. Seven original reference glosses/topics remain separate.
 
@@ -75,6 +76,6 @@ The pinned HSK source checksum in `data/source/manifest.json` uses UTF-8 text wi
 
 ## Next phase
 
-Phase 2: ts-fsrs scheduling, immutable review logs and atomic idempotent review transactions; multi-stage lessons; advanced flashcards; daily plans/queues; multiple-choice, listening, typing and real practice telemetry. Phase 3: decks, remaining exercises, recording, analytics/streaks and offline improvements. Planned navigation is labelled; it does not claim working review or practice features.
+Next: ts-fsrs scheduling, immutable review logs and atomic review transactions; multi-stage lessons; advanced flashcards; daily plans/queues; listening and typing. Later: decks, recordings, analytics/streaks and offline improvements. Planned navigation is labelled; Chinese↔meaning practice is implemented.
 
 See [architecture](docs/architecture.md), [database](docs/database-design.md), [design system](docs/design-system.md), [learning engine](docs/learning-engine.md), and [implementation plan](docs/implementation-plan.md).

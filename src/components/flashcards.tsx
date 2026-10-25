@@ -344,6 +344,14 @@ export function Flashcards({
               : "Tiến độ đã lưu trên trình duyệt này."}
           </p>
           <div className="summary-actions">
+            <Button asChild variant="outline">
+              <Link
+                href={`/practice?entries=${encodeURIComponent(eligible.map((card) => card.id).join(","))}`}
+              >
+                Luyện nhóm vừa học
+                <ArrowRight size={16} />
+              </Link>
+            </Button>
             <Button
               onClick={() => {
                 setIndex(0);

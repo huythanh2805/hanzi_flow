@@ -1,5 +1,7 @@
 # Learning engine
 
+Chinese↔meaning practice is implemented independently of mastery and future scheduled reviews. Sessions snapshot their source and questions, preserve first-round scores, and use separate child sessions for retries. See [practice behavior and persistence](practice.md).
+
 ## Entry identity and collections
 
 The source has 11,092 entries: 500 / 772 / 973 / 1,000 / 1,071 / 1,140 / 5,636 across Bands 1/2/3/4/5/6/7–9. Source IDs (including repeated spellings and readings) are canonical. A topic, band, filter or lesson selects IDs; all mutations address the same user-entry record. Analytics distinguishes entries from distinct spellings and review cards.
