@@ -2,7 +2,15 @@ import { createClient } from "@supabase/supabase-js";
 import { prepareData } from "./prepare-data";
 import { normalizeSearch } from "../src/lib/domain/catalogue";
 
-const { rows, manifest, topics, enrichment, imported } = await prepareData();
+const {
+  rows,
+  manifest,
+  topics,
+  enrichment,
+  imported,
+  topicAssignments,
+  topicClassification,
+} = await prepareData();
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key =
   process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -46,6 +54,7 @@ await upsert("vocabulary_sources", [
     metadata: enrichment.source,
   },
   ...imported.sources,
+  ...(topicClassification ? [topicClassification.source] : []),
 ]);
 await upsert("topics", topics);
 await upsert(
@@ -106,17 +115,7 @@ await upsert(
   ),
   "sense_id,language",
 );
-await upsert(
-  "vocabulary_topics",
-  rows.flatMap((v) =>
-    v.topics.map((topic_id) => ({
-      vocabulary_id: v.id,
-      topic_id,
-      source_id: enrichment.source.id,
-    })),
-  ),
-  "vocabulary_id,topic_id",
-);
+await upsert("vocabulary_topics", topicAssignments, "vocabulary_id,topic_id");
 await upsert(
   "vocabulary_examples",
   rows.flatMap((v) =>

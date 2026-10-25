@@ -210,8 +210,8 @@ export function Topics() {
       <div className="collection-info">
         <BookOpen size={18} />
         <span>
-          Chủ đề được phân loại theo nguồn xác định. Nội dung chưa được bổ sung
-          sẽ để trống.
+          Từ được phân loại theo chữ Hán và nghĩa từ điển. Một từ có thể thuộc
+          nhiều chủ đề và luôn dùng chung tiến độ học.
         </span>
         <TextLink href="/sources">Quy trình dữ liệu</TextLink>
       </div>

@@ -21,7 +21,6 @@ import { Button } from "./ui/button";
 import { number } from "@/lib/utils";
 import { studiedToday } from "@/lib/domain/progress";
 import { bands } from "@/lib/domain/types";
-import { Landscape } from "./landscape";
 export function Dashboard() {
   const { bootstrap, progress, preferences, ready } = useLearning();
   const records = Object.values(progress);
@@ -110,7 +109,6 @@ export function Dashboard() {
           <p className="card-footnote">Từng bước nhỏ tạo nên thay đổi lớn.</p>
         </Card>
         <Card className="journey-card">
-          <Landscape className="journey-landscape" />
           <div className="journey-copy">
             <span className="pill">
               <Flower2 size={13} /> Hành trình của riêng bạn

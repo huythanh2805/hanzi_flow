@@ -1,0 +1,5 @@
+/* Image backgrounds are reserved for the study Flashcard surface. */
+[data-theme="dark"] .card:not(.flashcard),
+[data-theme="dark"] .prose-page {
+  background: var(--card);
+}

@@ -98,6 +98,13 @@ export default function SourcesPage() {
           không gọi dịch vụ AI khi sử dụng.
         </p>
         <p>
+          Phân loại vào 20 chủ đề do HanziFlow biên soạn theo yêu cầu của chủ dự
+          án, dựa trên chữ Hán và nghĩa từ điển. Các liên kết từ thiết kế mẫu
+          được giữ nguyên; một mục từ có thể thuộc nhiều chủ đề. Đây là nhóm học
+          của ứng dụng, không phải phân loại chủ đề chính thức của HSK. Các từ
+          chưa khớp rõ ràng được để chờ phân loại thay vì gán ngẫu nhiên.
+        </p>
+        <p>
           <a href="/api/content-export">
             Tải dữ liệu bổ sung cùng nguồn và attribution (JSON)
           </a>

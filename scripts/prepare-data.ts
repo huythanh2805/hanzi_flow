@@ -10,8 +10,14 @@ import {
   importedContentSchema,
   mergeImportedContent,
 } from "../src/lib/domain/imported-content";
+import {
+  mergeTopicClassification,
+  type TopicAssignment,
+} from "../src/lib/domain/topic-classification";
 
-export async function prepareData() {
+export async function prepareData(
+  options: { includeTopicClassification?: boolean } = {},
+) {
   const source = await readFile("data/source/all.jsonl", "utf8");
   const manifest = JSON.parse(
     await readFile("data/source/manifest.json", "utf8"),
@@ -32,7 +38,28 @@ export async function prepareData() {
   const imported = importedContentSchema.parse(
     JSON.parse(await readFile("data/imported/enrichment.json", "utf8")),
   );
-  const rows = mergeImportedContent(base, imported);
+  const enrichedRows = mergeImportedContent(base, imported);
+  const topicData =
+    options.includeTopicClassification === false
+      ? null
+      : mergeTopicClassification(
+          enrichedRows,
+          JSON.parse(
+            await readFile("data/imported/topic-classification.json", "utf8"),
+          ),
+          topics,
+          enrichment.source.id,
+        );
+  const rows = topicData?.rows ?? enrichedRows;
+  const topicAssignments: TopicAssignment[] =
+    topicData?.assignments ??
+    rows.flatMap((v) =>
+      v.topics.map((topic_id) => ({
+        vocabulary_id: v.id,
+        topic_id,
+        source_id: enrichment.source.id,
+      })),
+    );
   if (rows.length !== 11092) throw new Error("Unexpected source count");
   const expected = {
     "1": 500,
@@ -46,7 +73,15 @@ export async function prepareData() {
   for (const [band, count] of Object.entries(expected))
     if (rows.filter((v) => v.band === band).length !== count)
       throw new Error(`Incorrect count for ${band}`);
-  return { rows, manifest, topics, enrichment, imported };
+  return {
+    rows,
+    manifest,
+    topics,
+    enrichment,
+    imported,
+    topicAssignments,
+    topicClassification: topicData?.classification ?? null,
+  };
 }
 if (process.argv[1]?.replace(/\\/g, "/").endsWith("prepare-data.ts")) {
   const { rows, manifest } = await prepareData();

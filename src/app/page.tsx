@@ -9,7 +9,7 @@ import {
   Shapes,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
-import { Landscape } from "@/components/landscape";
+import { SceneArtwork } from "@/components/app-ambience";
 import { Button } from "@/components/ui/button";
 export default function WelcomePage() {
   return (
@@ -66,7 +66,7 @@ export default function WelcomePage() {
           </p>
         </div>
         <div className="welcome-art">
-          <Landscape className="welcome-landscape" />
+          <SceneArtwork className="welcome-landscape" />
           <div className="welcome-art-caption">
             <span lang="zh-CN">学无止境</span>
             <p>Việc học không có điểm dừng.</p>

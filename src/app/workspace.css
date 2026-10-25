@@ -1,0 +1,737 @@
+/* HanziFlow design handoff: shared shell and study workspace.
+   Kept after the existing component styles so both themes share the same
+   readable type scale and the mobile drawer keeps its current behavior. */
+.button {
+  min-height: 44px;
+  border-radius: 11px;
+}
+.button-icon {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+}
+.button-sm {
+  min-height: 36px;
+}
+.button-outline:hover:not(:disabled),
+.button-ghost:hover:not(:disabled) {
+  background: var(--muted);
+}
+.button-primary:disabled {
+  background: var(--muted);
+  color: var(--muted-foreground);
+  box-shadow: none;
+  opacity: 1;
+}
+input,
+select,
+textarea {
+  min-height: 44px;
+}
+input[type="checkbox"] {
+  min-height: 0;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+:focus-visible {
+  outline-color: var(--primary);
+}
+[data-theme="dark"] :focus-visible {
+  outline-color: #86f3cd;
+}
+.sidebar {
+  width: var(--sidebar-width);
+}
+.sidebar-brand {
+  height: 88px;
+  padding-inline: 26px;
+}
+.sidebar-brand .brand {
+  font-size: 23px;
+}
+.sidebar-brand .brand-mark {
+  width: 35px;
+  height: 38px;
+  font-size: 26px;
+}
+.sidebar-scroll {
+  padding: 12px 18px 18px;
+  scrollbar-color: var(--border) transparent;
+}
+.nav-group {
+  margin-bottom: 20px;
+}
+.nav-label {
+  font-size: var(--text-caption);
+  letter-spacing: 0.12em;
+  margin-bottom: 10px;
+  padding-inline: 12px;
+}
+.nav-item {
+  border: 1px solid transparent;
+  border-radius: 11px;
+  min-height: 46px;
+  padding: 10px 12px;
+  font-size: var(--text-ui);
+  gap: 12px;
+}
+.nav-item > span:first-of-type {
+  min-width: 0;
+}
+.nav-item > svg {
+  width: 20px;
+  height: 20px;
+}
+.nav-item.active {
+  border-color: color-mix(in srgb, var(--primary) 25%, transparent);
+  background: var(--primary-soft);
+}
+.nav-item.active::after {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+}
+.nav-soon {
+  font-size: var(--text-caption);
+  padding: 2px 5px;
+  border-radius: 5px;
+}
+.sidebar-note {
+  margin: 12px 4px 0;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border));
+  border-radius: 14px;
+  background: linear-gradient(125deg, var(--primary-soft), transparent);
+}
+.sidebar-note p {
+  font-size: var(--text-body);
+}
+.sidebar-note > span:not(.note-leaf):not(.note-glyph) {
+  font-size: var(--text-label);
+  line-height: 1.7;
+}
+.sidebar-footer {
+  padding: 18px;
+  gap: 12px;
+}
+.sidebar-footer strong {
+  font-size: var(--text-small);
+  max-width: 144px;
+}
+.sidebar-footer > div span {
+  font-size: var(--text-caption);
+}
+.sidebar-footer > button,
+.sidebar-footer > a {
+  min-width: 36px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.app-column {
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+  min-width: 0;
+}
+[data-theme="dark"] .app-column {
+  background:
+    radial-gradient(ellipse 600px 400px at 100% 0, #43e4ac08, transparent 75%),
+    var(--background);
+}
+.topbar {
+  height: 68px;
+  padding-inline: 48px;
+  background: transparent;
+}
+.study-shell .topbar {
+  height: 56px;
+  border-bottom-color: transparent;
+}
+.study-shell .main-content {
+  padding-top: 24px;
+  padding-bottom: 32px;
+}
+.main-content {
+  max-width: 1276px;
+  padding: 40px 48px 48px;
+}
+.app-footer {
+  max-width: 1276px;
+  padding: 0 48px 24px;
+  font-size: var(--text-caption);
+  gap: 16px;
+}
+.page-heading h1 {
+  font-size: clamp(30px, 2.6vw, 38px);
+  font-weight: 750;
+  line-height: 1.25;
+  letter-spacing: -0.035em;
+}
+.page-description {
+  font-size: var(--text-body);
+  line-height: 1.7;
+  max-width: 65ch;
+}
+.meaning-cell,
+.sense-en,
+.example p:not(:first-child) {
+  font-size: var(--text-body);
+  line-height: 1.8;
+}
+.sense-vi {
+  font-size: var(--text-subtitle);
+  line-height: 1.8;
+}
+.heading-actions .button {
+  white-space: normal;
+  text-align: center;
+}
+.eyebrow {
+  font-size: var(--text-caption);
+  letter-spacing: 0.16em;
+}
+.checkbox-label {
+  gap: 8px;
+  min-height: 44px;
+}
+.flashcards-page > .page-heading {
+  margin-bottom: 24px;
+  align-items: flex-start;
+}
+.flashcards-page .heading-actions {
+  padding-top: 24px;
+}
+.flashcards-page .heading-actions .button {
+  min-height: 48px;
+  padding-inline: 18px;
+}
+.study-workspace {
+  max-width: 960px;
+  margin-inline: auto;
+}
+.study-meta {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+.study-meta .back-link {
+  margin: 0;
+  min-height: 32px;
+  font-size: var(--text-small);
+}
+.study-meta > span {
+  font-size: 21px;
+  font-weight: 650;
+  color: var(--primary);
+  white-space: nowrap;
+}
+.study-meta small {
+  font-size: var(--text-small);
+  font-weight: 400;
+}
+.study-progress {
+  height: 6px;
+  background: var(--muted);
+}
+.study-progress > span {
+  background: linear-gradient(90deg, var(--primary-hover), var(--primary));
+}
+.study-tools {
+  margin-top: 16px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.study-tools > .outline-pill {
+  font-size: var(--text-small);
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--card);
+}
+.study-tools > div {
+  gap: 8px;
+  margin-left: auto;
+}
+.study-tools .checkbox-label {
+  font-size: var(--text-small);
+  gap: 8px;
+  margin-right: 8px;
+}
+.study-tools .checkbox-label input {
+  width: 18px;
+  height: 18px;
+}
+.study-tools .button-icon {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 10px;
+}
+.study-tools .button-icon svg,
+.study-actions > .button > svg {
+  width: 20px;
+  height: 20px;
+}
+.study-tools .button-icon[aria-pressed="true"] {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.flashcard-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 16px;
+  margin: 20px auto 28px;
+  position: relative;
+}
+.card-arrow {
+  position: static;
+  width: 48px;
+  height: 48px;
+  min-height: 48px;
+  border-radius: 50%;
+  background: var(--card);
+}
+.flashcard {
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+  min-width: 0;
+  isolation: isolate;
+  border-radius: 20px;
+  background: var(--card);
+  border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--border));
+  box-shadow: 0 18px 50px #00000010;
+  transition:
+    border-color 180ms,
+    box-shadow 180ms;
+}
+[data-theme="dark"] .flashcard {
+  box-shadow:
+    0 18px 50px #0000004d,
+    0 0 45px #43e4ac04;
+}
+.flashcard-landscape {
+  position: absolute;
+  pointer-events: none;
+  width: 100%;
+  height: 100%;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.12;
+  mask-image: linear-gradient(transparent 8%, #000 90%);
+}
+.flashcard-flip-target {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+}
+.flashcard-flip-target:focus-visible {
+  outline-offset: -5px;
+}
+.flashcard-corner,
+.flashcard-main,
+.flashcard-bottom {
+  position: relative;
+  pointer-events: none;
+}
+.flashcard-main :is(button, a),
+.flashcard-answer > :is(p, span, small) {
+  pointer-events: auto;
+}
+.flashcard.is-revealed {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  animation: reveal 280ms ease-out;
+}
+.flashcard-corner {
+  padding: 18px 24px;
+  font-size: var(--text-small);
+  color: var(--secondary-text);
+  gap: 8px;
+}
+.flashcard-main {
+  flex: 1;
+  min-height: 310px;
+  padding: 0 32px 16px;
+}
+.flashcard-prompt {
+  font-size: var(--text-ui);
+  color: var(--secondary-text);
+  margin-bottom: 16px;
+}
+.flashcard-hanzi {
+  max-width: 100%;
+  font-family: var(--chinese-font);
+  font-size: clamp(72px, 7vw, 112px);
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: 0.03em;
+  overflow-wrap: anywhere;
+  margin: 0 0 16px;
+  text-wrap: balance;
+}
+.flashcard-hanzi.is-long-word {
+  font-size: clamp(36px, 4.5vw, 64px);
+}
+.flashcard-pinyin {
+  font-size: clamp(28px, 3.4vw, 44px);
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+  margin: 12px 0 20px;
+}
+.flashcard-main > .speak-button {
+  width: 54px;
+  height: 54px;
+  min-height: 54px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--primary) 55%, var(--border));
+  background: var(--primary-soft);
+  border-radius: 50%;
+  color: var(--primary);
+  margin-bottom: 12px;
+}
+.flashcard-main > .speak-button:hover {
+  background: color-mix(in srgb, var(--primary) 18%, var(--card));
+}
+.flashcard-answer {
+  width: 100%;
+  max-width: 62ch;
+  min-height: 48px;
+  margin-top: 0;
+  overflow-wrap: anywhere;
+  gap: 8px;
+}
+.answer-text {
+  font-size: 24px;
+  line-height: 1.65;
+}
+.flashcard-answer > span {
+  font-size: var(--text-body);
+  line-height: 1.8;
+  margin-top: 0;
+}
+.flashcard-answer > .muted {
+  font-size: var(--text-label);
+  color: var(--muted-foreground);
+}
+.flashcard-detail-link {
+  font-size: var(--text-small);
+  min-height: 36px;
+  margin-top: 0;
+}
+.reveal-link {
+  font-size: var(--text-ui);
+  color: var(--secondary-text);
+  min-height: 44px;
+  padding: 10px 12px;
+}
+.reveal-link:hover {
+  color: var(--primary);
+}
+.flashcard-bottom {
+  min-height: 48px;
+  padding: 12px 24px;
+  font-size: var(--text-label);
+  background: color-mix(in srgb, var(--card-soft) 75%, transparent);
+  overflow-wrap: anywhere;
+}
+.study-actions {
+  min-height: 56px;
+  gap: 12px;
+  padding: 0;
+}
+.study-actions > .button {
+  min-height: 54px;
+  min-width: 0;
+  font-size: var(--text-body);
+  padding: 14px 24px;
+  border-radius: 12px;
+}
+.study-actions > .button-primary {
+  background: linear-gradient(180deg, var(--primary-hover), var(--primary));
+  color: var(--primary-foreground);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 12%, transparent);
+}
+.study-actions > .button-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+.study-actions > .button-primary:disabled {
+  background: var(--muted);
+  color: var(--muted-foreground);
+  box-shadow: none;
+}
+.reveal-button {
+  width: min(100%, 600px);
+}
+.keycap {
+  font-size: var(--text-label);
+  padding: 1px 7px;
+  border-radius: 5px;
+  opacity: 0.8;
+}
+.keyboard-hint {
+  font-size: var(--text-label);
+  gap: 18px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+  line-height: 1.8;
+}
+kbd {
+  font-size: var(--text-caption);
+  padding: 1px 6px;
+  border-radius: 5px;
+}
+.flashcard-options {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 24px;
+  border-radius: 16px;
+  gap: 20px;
+}
+.flashcard-options > label:not(.checkbox-label) {
+  min-width: 0;
+  font-size: var(--text-ui);
+}
+.flashcard-options select {
+  font-size: var(--text-body);
+}
+.flashcard-options .checkbox-label,
+.flashcard-options .content-note {
+  font-size: var(--text-small);
+}
+.flashcard-options .button {
+  white-space: normal;
+}
+@media (min-width: 768px) and (max-width: 1199px) {
+  :root {
+    --sidebar-width: 252px;
+  }
+  .main-content {
+    padding: 32px 24px;
+  }
+  .topbar {
+    padding-inline: 24px;
+  }
+  .app-footer {
+    padding-inline: 24px;
+  }
+  .sidebar-scroll {
+    padding-inline: 12px;
+  }
+  .sidebar-brand {
+    padding-inline: 20px;
+  }
+  .sidebar-brand .brand {
+    font-size: 21px;
+  }
+  .flashcards-page > .page-heading {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .flashcards-page .heading-actions {
+    padding-top: 0;
+  }
+  .flashcard-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .flashcard {
+    grid-row: 1;
+    grid-column: 1 / -1;
+  }
+  .card-arrow {
+    grid-row: 2;
+  }
+  .card-arrow:last-child {
+    justify-self: end;
+  }
+  .flashcard-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .topbar-title > span:first-of-type,
+  .breadcrumb-slash,
+  .save-indicator {
+    display: none;
+  }
+  .study-actions > .button {
+    padding-inline: 18px;
+    white-space: normal;
+  }
+}
+@media (max-width: 767px) {
+  :root {
+    --sidebar-width: 288px;
+  }
+  .sidebar {
+    width: min(var(--sidebar-width), calc(100vw - 48px));
+  }
+  .app-column {
+    margin-left: 0;
+    width: 100%;
+  }
+  .main-content {
+    padding: 28px 18px 36px;
+  }
+  .topbar {
+    height: 64px;
+    padding-inline: 12px;
+  }
+  .topbar-title {
+    min-width: 0;
+    gap: 6px;
+  }
+  .topbar-title strong {
+    font-size: var(--text-small);
+  }
+  .topbar-actions {
+    gap: 4px;
+  }
+  .topbar-actions .avatar-sm,
+  .save-indicator,
+  .topbar-divider {
+    display: none;
+  }
+  .mobile-menu {
+    display: inline-flex;
+  }
+  .nav-backdrop {
+    background: #05090cc2;
+  }
+  .sidebar-collapse {
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+  }
+  .app-footer {
+    padding: 0 18px 22px;
+    flex-wrap: wrap;
+    font-size: var(--text-caption);
+  }
+  .app-layout :is(input:not([type="checkbox"]), select, textarea) {
+    font-size: var(--text-body);
+  }
+  .page-heading {
+    flex-wrap: wrap;
+  }
+  .page-heading h1 {
+    font-size: clamp(27px, 6.8vw, 32px);
+  }
+  .page-description {
+    font-size: var(--text-body);
+  }
+  .flashcards-page > .page-heading {
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .flashcards-page .heading-actions {
+    padding-top: 0;
+  }
+  .study-tools {
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .study-tools > div {
+    gap: 4px;
+  }
+  .study-tools > .outline-pill {
+    font-size: var(--text-label);
+    padding: 5px 9px;
+  }
+  .study-tools .checkbox-label {
+    font-size: var(--text-label);
+    margin-right: 0;
+  }
+  .flashcard-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 16px auto 20px;
+  }
+  .flashcard {
+    grid-row: 1;
+    grid-column: 1/-1;
+    min-height: 360px;
+    border-radius: 18px;
+  }
+  .card-arrow {
+    grid-row: 2;
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+  .card-arrow:last-child {
+    justify-self: end;
+  }
+  .flashcard-corner {
+    padding: 18px;
+  }
+  .flashcard-main {
+    padding: 0 20px 12px;
+    min-height: 248px;
+  }
+  .flashcard-prompt {
+    font-size: var(--text-small);
+    margin-bottom: 12px;
+  }
+  .flashcard-hanzi {
+    font-size: clamp(64px, 18vw, 88px);
+    margin-bottom: 12px;
+  }
+  .flashcard-main > .speak-button {
+    width: 48px;
+    height: 48px;
+    min-height: 48px;
+    margin-bottom: 8px;
+  }
+  .flashcard-hanzi.is-long-word {
+    font-size: clamp(32px, 8.5vw, 44px);
+  }
+  .flashcard-pinyin {
+    font-size: 30px;
+  }
+  .answer-text {
+    font-size: 22px;
+  }
+  .flashcard-bottom {
+    padding: 12px 16px;
+    font-size: var(--text-caption);
+    gap: 12px;
+  }
+  .flashcard-bottom > span:last-child {
+    font-size: var(--text-caption);
+  }
+  .study-actions {
+    padding: 0;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .study-actions > .button {
+    min-height: 54px;
+    padding: 12px 14px;
+    font-size: var(--text-ui);
+    flex: 1 1 140px;
+    white-space: normal;
+  }
+  .study-actions > .reveal-button {
+    flex: 0 1 600px;
+  }
+  .study-actions > .button-primary {
+    flex-grow: 1.4;
+  }
+  .keyboard-hint {
+    display: none;
+  }
+  .flashcard-options {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+  .trial-banner {
+    font-size: var(--text-label);
+    line-height: 1.6;
+  }
+}

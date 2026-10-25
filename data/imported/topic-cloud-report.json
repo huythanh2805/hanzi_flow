@@ -1,0 +1,31 @@
+{
+  "source_id": "hanziflow-topic-rules-v1",
+  "assignedEntries": 3540,
+  "assignments": 4055,
+  "cloudAssignments": 4055,
+  "counts": {
+    "daily-conversation": 190,
+    "family": 112,
+    "relationships": 126,
+    "friends": 91,
+    "work-career": 185,
+    "education": 204,
+    "technology": 112,
+    "travel": 133,
+    "food": 232,
+    "shopping": 179,
+    "finance": 177,
+    "health": 221,
+    "emotions": 242,
+    "personality": 215,
+    "lifestyle": 180,
+    "society-culture": 383,
+    "opinions": 275,
+    "time": 413,
+    "transportation": 192,
+    "housing": 193
+  },
+  "personalTablesUnchanged": true,
+  "lexicalCatalogueCountsUnchanged": true,
+  "readModelVerified": true
+}

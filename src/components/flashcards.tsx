@@ -1,25 +1,18 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Bookmark,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  CircleCheck,
-  Keyboard,
-  Layers3,
-  RotateCcw,
-  Shuffle,
-  SlidersHorizontal,
-} from "lucide-react";
+import { ArrowRight, CircleCheck, RotateCcw } from "lucide-react";
 import { useLearning } from "./provider";
-import { EmptyState, LoadingState, PageHeading, SpeakButton } from "./common";
+import { EmptyState, LoadingState } from "./common";
 import { Button } from "./ui/button";
+import { FlashcardsHeader } from "./flashcards/flashcards-header";
+import { StudyProgress } from "./flashcards/study-progress";
+import { StudyToolbar } from "./flashcards/study-toolbar";
+import { FlashcardPanel } from "./flashcards/flashcard-panel";
+import { FlashcardActions } from "./flashcards/flashcard-actions";
+import { ShortcutHints } from "./flashcards/shortcut-hints";
+import type { StudyMode as Mode } from "./flashcards/types";
 import { bands, type Filters, type Vocabulary } from "@/lib/domain/types";
-type Mode = "pinyin" | "hanzi" | "vi" | "en";
 export function Flashcards({
   initial,
   initialBand = "",
@@ -166,8 +159,16 @@ export function Flashcards({
   useEffect(() => {
     function keydown(e: KeyboardEvent) {
       if (
+        e.altKey ||
+        e.ctrlKey ||
+        e.metaKey ||
+        e.shiftKey ||
+        e.isComposing ||
+        e.repeat ||
         (e.target instanceof HTMLElement &&
-          (e.target.matches("input,select,textarea,button,a") ||
+          (e.target.closest(
+            "input,select,textarea,button,a,[role='textbox']",
+          ) ||
             e.target.isContentEditable)) ||
         finished ||
         !ready ||
@@ -240,22 +241,12 @@ export function Flashcards({
   }
   return (
     <div className="page-enter flashcards-page">
-      <PageHeading
-        eyebrow="NHÌN THẤY · NHỚ LÂU"
-        title="Một tấm thẻ. Một từ mới."
-        description="Dành một khoảnh khắc để nhớ, trước khi lật thẻ."
-      >
-        <Button
-          variant="outline"
-          aria-expanded={options}
-          onClick={() => setOptions((o) => !o)}
-        >
-          <SlidersHorizontal size={16} />
-          Tùy chỉnh buổi học
-        </Button>
-      </PageHeading>
+      <FlashcardsHeader
+        optionsOpen={options}
+        onToggleOptions={() => setOptions((o) => !o)}
+      />
       {options && (
-        <div className="card flashcard-options">
+        <div className="card flashcard-options" id="study-options">
           <label>
             HSK Band
             <select
@@ -391,226 +382,55 @@ export function Flashcards({
         </div>
       ) : v ? (
         <div className="study-workspace">
-          <div className="study-meta">
-            <Link
-              href={
-                initialTopic
-                  ? `/topics/${initialTopic}`
-                  : initialBand
-                    ? `/bands/${initialBand}`
-                    : "/vocabulary"
-              }
-              className="back-link"
-            >
-              <ArrowLeft size={15} />
-              {initialTopic
-                ? bootstrap.topics.find((t) => t.id === initialTopic)?.name
+          <StudyProgress
+            href={
+              initialTopic
+                ? `/topics/${initialTopic}`
+                : initialBand
+                  ? `/bands/${initialBand}`
+                  : "/vocabulary"
+            }
+            label={
+              initialTopic
+                ? (bootstrap.topics.find((t) => t.id === initialTopic)?.name ??
+                  "Buổi học của bạn")
                 : initialBand
                   ? `Band ${initialBand} · Nhóm ${activeLesson}`
-                  : "Buổi học của bạn"}
-            </Link>
-            <span>
-              {index + 1}
-              <small> / {eligible.length}</small>
-            </span>
-          </div>
-          <div className="study-progress">
-            <span
-              style={{ width: `${((index + 1) / eligible.length) * 100}%` }}
-            />
-          </div>
-          <div className="study-tools">
-            <span className="outline-pill">
-              {mode === "pinyin"
-                ? "Chữ Hán → Pinyin"
-                : mode === "hanzi"
-                  ? "Pinyin → Chữ Hán"
-                  : `Chữ Hán → ${mode === "vi" ? "Tiếng Việt" : "Tiếng Anh"}`}
-            </span>
-            <div>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={autoPlay}
-                  onChange={(e) => setAutoPlay(e.target.checked)}
-                />
-                Tự phát âm
-              </label>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Xáo trộn thẻ"
-                onClick={shuffle}
-              >
-                <Shuffle size={17} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                disabled={!ready || pending[v.id]}
-                aria-label={p?.favorite ? "Bỏ lưu thẻ" : "Lưu thẻ"}
-                aria-pressed={p?.favorite ?? false}
-                onClick={() => void mutate(v.id, { favorite: !p?.favorite })}
-              >
-                <Bookmark
-                  size={17}
-                  fill={p?.favorite ? "currentColor" : "none"}
-                />
-              </Button>
-            </div>
-          </div>
-          <div className="flashcard-row">
-            <Button
-              variant="outline"
-              size="icon"
-              className="card-arrow"
-              aria-label="Thẻ trước"
-              disabled={index === 0}
-              onClick={() => move(-1)}
-            >
-              <ChevronLeft size={22} />
-            </Button>
-            <div className={`card flashcard ${revealed ? "is-revealed" : ""}`}>
-              <div className="flashcard-corner">
-                <Layers3 size={16} />
-                <span>HSK Band {v.band}</span>
-              </div>
-              <div className="flashcard-main">
-                <p className="flashcard-prompt">
-                  {mode === "hanzi"
-                    ? "Bạn nhớ chữ Hán này không?"
-                    : "Bạn nhớ cách đọc / ý nghĩa không?"}
-                </p>
-                <h2
-                  className={
-                    mode === "hanzi" ? "flashcard-pinyin" : "flashcard-hanzi"
-                  }
-                  lang={mode === "hanzi" ? undefined : "zh-CN"}
-                >
-                  {mode === "hanzi" ? v.pinyin : v.word}
-                </h2>
-                {(mode !== "hanzi" || revealed) && (
-                  <SpeakButton word={v.word} audioUrl={v.audio_url} large />
-                )}
-                <div className="flashcard-answer" aria-live="polite">
-                  {revealed ? (
-                    <>
-                      <p
-                        className={
-                          mode === "hanzi" ? "answer-hanzi" : "answer-text"
-                        }
-                        lang={mode === "hanzi" ? "zh-CN" : undefined}
-                      >
-                        {mode === "pinyin"
-                          ? v.pinyin
-                          : mode === "hanzi"
-                            ? v.word
-                            : v.senses
-                                .map((s) => s[mode])
-                                .filter(Boolean)
-                                .join("; ")}
-                      </p>
-                      {mode === "pinyin" &&
-                        v.senses.some((s) => s[preferences.language]) && (
-                          <span>
-                            {v.senses
-                              .map((s) => s[preferences.language])
-                              .filter(Boolean)
-                              .join("; ")}
-                          </span>
-                        )}
-                      <Link
-                        href={`/vocabulary/${v.id}`}
-                        className="flashcard-detail-link"
-                      >
-                        Chi tiết từ
-                        <ArrowRight size={12} />
-                      </Link>
-                      {v.senses.some(
-                        (s) =>
-                          s.translation_meta?.[
-                            mode === "vi" || mode === "en"
-                              ? mode
-                              : preferences.language
-                          ],
-                      ) && (
-                        <small className="muted">
-                          Có bản dịch máy chưa duyệt · Xem nguồn trong chi tiết
-                          từ
-                        </small>
-                      )}
-                    </>
-                  ) : (
-                    <button
-                      className="reveal-link"
-                      onClick={() => setRevealed(true)}
-                    >
-                      Lật thẻ để xem đáp án
-                      <RotateCcw size={14} />
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className="flashcard-bottom">
-                <span>
-                  {p?.state === "LEARNING" ? "Đang học" : "Khám phá một từ mới"}
-                </span>
-                <span>{v.id}</span>
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="icon"
-              className="card-arrow"
-              aria-label="Thẻ tiếp theo"
-              disabled={index + 1 >= eligible.length}
-              onClick={() => move(1)}
-            >
-              <ChevronRight size={22} />
-            </Button>
-          </div>
-          <div className="study-actions">
-            {revealed ? (
-              <>
-                <Button
-                  variant="outline"
-                  disabled={!ready || pending[v.id]}
-                  onClick={() => void learn(true)}
-                >
-                  Cần học lại
-                </Button>
-                <Button
-                  disabled={!ready || pending[v.id]}
-                  onClick={() => void learn()}
-                >
-                  <Check size={17} />
-                  {pending[v.id] ? "Đang lưu…" : "Đã học · Tiếp tục"}
-                  <ArrowRight size={17} />
-                </Button>
-              </>
-            ) : (
-              <Button
-                className="reveal-button"
-                onClick={() => setRevealed(true)}
-              >
-                <RotateCcw size={16} />
-                Xem đáp án<span className="keycap">Space</span>
-              </Button>
-            )}
-          </div>
-          <p className="keyboard-hint">
-            <Keyboard size={15} />
-            <span>
-              <kbd>Space</kbd> lật thẻ
-            </span>
-            <span>
-              <kbd>←</kbd>
-              <kbd>→</kbd> chuyển thẻ
-            </span>
-            <span>
-              <kbd>Enter</kbd> đánh dấu đã học
-            </span>
-          </p>
+                  : "Buổi học của bạn"
+            }
+            current={index + 1}
+            total={eligible.length}
+          />
+          <StudyToolbar
+            mode={mode}
+            autoPlay={autoPlay}
+            onAutoPlay={setAutoPlay}
+            onShuffle={shuffle}
+            favorite={p?.favorite ?? false}
+            onBookmark={() => void mutate(v.id, { favorite: !p?.favorite })}
+            disabled={!ready || !!pending[v.id]}
+          />
+          <FlashcardPanel
+            vocabulary={v}
+            mode={mode}
+            revealed={revealed}
+            language={preferences.language}
+            state={p?.state}
+            onFlip={() => setRevealed((r) => !r)}
+            onPrevious={() => move(-1)}
+            onNext={() => move(1)}
+            previousDisabled={index === 0}
+            nextDisabled={index + 1 >= eligible.length}
+          />
+          <FlashcardActions
+            revealed={revealed}
+            disabled={!ready || !!pending[v.id]}
+            busy={!!pending[v.id]}
+            onReveal={() => setRevealed(true)}
+            onLearn={() => void learn()}
+            onRetry={() => void learn(true)}
+          />
+          <ShortcutHints />
         </div>
       ) : (
         <div className="card">

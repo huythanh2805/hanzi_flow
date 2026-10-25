@@ -162,14 +162,19 @@ describe("shared catalogue filtering", () => {
       rows,
       filterSchema.parse({ topic: "work-career", band: "1" }),
     );
-    expect(result.total).toBe(1);
-    expect(result.items[0].id).toBe("hsk30-b1-0124");
+    expect(result.total).toBeGreaterThan(1);
+    expect(result.items.some((v) => v.id === "hsk30-b1-0124")).toBe(true);
+    expect(
+      result.items.every(
+        (v) => v.band === "1" && v.topics.includes("work-career"),
+      ),
+    ).toBe(true);
     expect(
       selectVocabulary(
         rows,
         filterSchema.parse({ topic: "work-career", band: "2" }),
       ).total,
-    ).toBe(0);
+    ).toBeGreaterThan(0);
   });
   it.each([
     "工作",

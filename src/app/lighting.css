@@ -1,0 +1,225 @@
+/* Decorative layers only. No layout, learning state or card transforms. */
+:root {
+  --moonlight-emerald: rgb(52 211 153 / 32%);
+  --moonlight-mint: rgb(167 243 208 / 30%);
+  --moonlight-atmosphere: rgb(167 243 208 / 12%);
+  --moonlight-edge: rgb(167 243 208 / 42%);
+}
+.app-ambience-image {
+  z-index: 0;
+}
+.app-ambience::after {
+  z-index: 2;
+}
+[data-theme="dark"] .app-ambience[data-moonlight="on"]::after {
+  /* Let the source shine through the vignette, keeping the left side dark. */
+  mask-image: radial-gradient(ellipse 70% 80% at 100% 0%, #0003, #000 85%);
+}
+.moonlight-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+}
+[data-theme="dark"] .moonlight-overlay {
+  display: block;
+  background:
+    radial-gradient(
+      ellipse 28% 30% at 100% 0%,
+      rgb(207 255 234 / 30%),
+      transparent 76%
+    ),
+    radial-gradient(
+      ellipse 48% 42% at 100% 0%,
+      var(--moonlight-emerald),
+      transparent 75%
+    ),
+    radial-gradient(
+      ellipse 68% 66% at 94% 6%,
+      var(--moonlight-mint),
+      transparent 78%
+    ),
+    radial-gradient(
+      ellipse 86% 100% at 87% 0%,
+      var(--moonlight-atmosphere),
+      transparent 80%
+    );
+  transform-origin: top right;
+  opacity: 0.94;
+  animation: moonlight-breathe 20s ease-in-out infinite;
+}
+.moonlight-overlay::before {
+  content: "";
+  position: absolute;
+  width: 150vmax;
+  height: 28vmax;
+  top: -14vmax;
+  right: -8vmax;
+  background: linear-gradient(
+    0deg,
+    transparent 10%,
+    rgb(167 243 208 / 4%) 36%,
+    rgb(167 243 208 / 13%) 50%,
+    rgb(167 243 208 / 4%) 64%,
+    transparent 90%
+  );
+  mask-image: linear-gradient(to left, #000, transparent 85%);
+  transform-origin: right center;
+  transform: rotate(-36deg);
+  filter: blur(28px);
+  pointer-events: none;
+}
+[data-theme="dark"] .card:not(.flashcard),
+[data-theme="dark"] .flashcard,
+[data-theme="dark"] .prose-page {
+  --edge-visibility: 1;
+  position: relative;
+  border-color: transparent;
+  box-shadow: none;
+}
+[data-theme="dark"] .flashcard::after {
+  box-shadow: none;
+}
+.flashcard-reflection {
+  display: none;
+  pointer-events: none;
+}
+[data-theme="dark"] .flashcard {
+  /* Leave headroom for the existing flip pulse above the bright resting edge. */
+  --edge-visibility: 0.92;
+}
+/* The horizontal gradient lights the center of both top and bottom edges. */
+@supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
+  [data-theme="dark"] :is(.card, .prose-page)::before,
+  [data-theme="dark"] .flashcard-reflection {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    padding: 1px;
+    pointer-events: none;
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+  }
+  [data-theme="dark"] :is(.card, .prose-page)::before {
+    background: linear-gradient(
+      90deg,
+      transparent 25%,
+      rgb(110 231 183 / 12%) 40%,
+      var(--moonlight-edge) 50%,
+      rgb(110 231 183 / 12%) 60%,
+      transparent 75%
+    );
+    opacity: var(--edge-visibility);
+    animation: moonlight-panel-shimmer 12s ease-in-out infinite;
+  }
+  [data-theme="dark"] .flashcard::before {
+    animation: moonlight-edge-settle 950ms ease-out;
+  }
+  /* Distinct names retrigger the highlight on either face, without JS timers. */
+  [data-theme="dark"] .flashcard.is-revealed::before {
+    animation-name: moonlight-edge-reveal;
+  }
+  [data-theme="dark"] .flashcard-reflection {
+    display: block;
+    container-type: size;
+  }
+  .flashcard-reflection::before {
+    content: "";
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    left: -90px;
+    top: -90px;
+    background: radial-gradient(
+      ellipse,
+      rgb(167 243 208 / 10%),
+      transparent 70%
+    );
+    transform: translate3d(50cqw, 0, 0);
+    opacity: 0.6;
+    animation: moonlight-reflection 11s ease-in-out infinite;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  [data-theme="dark"] .card:hover,
+  [data-theme="dark"] a.card:hover,
+  [data-theme="dark"] .prose-page:hover {
+    --edge-visibility: 1;
+    border-color: transparent;
+    box-shadow: none;
+  }
+}
+@keyframes moonlight-panel-shimmer {
+  0%,
+  100% {
+    opacity: var(--edge-visibility);
+  }
+  50% {
+    opacity: calc(var(--edge-visibility) * 0.9);
+  }
+}
+@keyframes moonlight-breathe {
+  0%,
+  100% {
+    opacity: 0.86;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.025);
+  }
+}
+@keyframes moonlight-reflection {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: translate3d(45cqw, 0, 0);
+  }
+  36% {
+    opacity: 0.7;
+    transform: translate3d(55cqw, 0, 0);
+  }
+  72% {
+    opacity: 0.45;
+    transform: translate3d(50cqw, 100cqh, 0);
+  }
+}
+@keyframes moonlight-edge-settle {
+  0% {
+    opacity: var(--edge-visibility);
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: var(--edge-visibility);
+  }
+}
+@keyframes moonlight-edge-reveal {
+  0% {
+    opacity: var(--edge-visibility);
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: var(--edge-visibility);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="dark"] .moonlight-overlay,
+  [data-theme="dark"] :is(.card, .prose-page)::before,
+  .flashcard-reflection::before {
+    animation: none;
+  }
+}

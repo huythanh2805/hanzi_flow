@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./workspace.css";
+import "./brand-theme.css";
+import "./lighting.css";
+import "./card-scenes.css";
+import "./flashcard-surface.css";
+import { AppAmbience, cardSceneStyle } from "@/components/app-ambience";
 export const metadata: Metadata = {
   title: {
     default: "HanziFlow — Mỗi ngày một từ mới",
@@ -14,8 +20,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi" suppressHydrationWarning>
-      <body>{children}</body>
+    <html
+      lang="vi"
+      data-theme="dark"
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
+      <body style={cardSceneStyle}>
+        <AppAmbience />
+        {children}
+      </body>
     </html>
   );
 }

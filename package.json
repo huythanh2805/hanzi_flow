@@ -17,7 +17,9 @@
     "test:cloud": "node --import tsx --env-file-if-exists=.env.local scripts/test-cloud.ts",
     "data:prepare": "tsx scripts/prepare-data.ts",
     "data:import": "tsx --env-file-if-exists=.env.local scripts/import-data.ts",
-    "data:enrichment": "tsx scripts/validate-enrichment.ts"
+    "data:enrichment": "tsx scripts/validate-enrichment.ts",
+    "data:topics": "tsx scripts/classify-topics.ts",
+    "data:import-topics": "tsx --env-file-if-exists=.env.local scripts/import-topics.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",

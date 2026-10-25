@@ -1,0 +1,61 @@
+/* Reference surface: scoped to Flashcards; shared card styling stays separate. */
+[data-theme="dark"] .flashcard,
+[data-theme="dark"] .flashcard:hover,
+[data-theme="dark"] .flashcard.is-revealed {
+  --flashcard-border-highlight: rgb(110 231 183 / 65%);
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--radius-panel, 24px);
+  border: 1px solid rgb(110 231 183 / 18%);
+  background-color: var(--card);
+  background-image:
+    linear-gradient(180deg, #05080a73, #05080a66 55%, #05080a8c),
+    var(--card-scene-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-origin: border-box;
+  box-shadow: none;
+}
+@media (max-width: 767px) {
+  [data-theme="dark"] .flashcard,
+  [data-theme="dark"] .flashcard:hover,
+  [data-theme="dark"] .flashcard.is-revealed {
+    background-position: 68% center;
+  }
+}
+/* Remove the old traveling center highlights, including the bottom point. */
+[data-theme="dark"] .flashcard .flashcard-reflection {
+  display: none;
+}
+[data-theme="dark"] .flashcard::after {
+  content: none;
+}
+@supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
+  [data-theme="dark"] .flashcard::before,
+  [data-theme="dark"] .flashcard.is-revealed::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    padding: 1px;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 32% 4px at 50% 0%,
+      var(--flashcard-border-highlight),
+      rgb(110 231 183 / 16%) 55%,
+      transparent 100%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    opacity: 1;
+    animation: none;
+  }
+}

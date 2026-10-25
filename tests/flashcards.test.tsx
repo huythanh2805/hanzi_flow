@@ -90,3 +90,37 @@ it("does not reveal cards when a keyboard event comes from an input", () => {
   fireEvent.keyDown(checkbox, { code: "Space", key: " " });
   expect(screen.queryByText("gōngzuò")).toBeNull();
 });
+
+it("flips through the accessible card surface and keeps speaker clicks independent", () => {
+  render(
+    <LearningProvider bootstrap={bootstrap}>
+      <Flashcards initial={[word]} singleEntry />
+    </LearningProvider>,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Lật thẻ xem đáp án" }));
+  expect(screen.getByText("gōngzuò")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Phát âm 工作" }));
+  expect(screen.getByText("gōngzuò")).toBeTruthy();
+  fireEvent.click(
+    screen.getByRole("button", { name: "Quay lại mặt trước của thẻ" }),
+  );
+  expect(screen.queryByText("gōngzuò")).toBeNull();
+});
+
+it("leaves modified, repeated and composing keyboard events to the browser", () => {
+  render(
+    <LearningProvider bootstrap={bootstrap}>
+      <Flashcards initial={[word]} singleEntry />
+    </LearningProvider>,
+  );
+  for (const modifier of [
+    { ctrlKey: true },
+    { metaKey: true },
+    { altKey: true },
+    { shiftKey: true },
+    { repeat: true },
+    { isComposing: true },
+  ])
+    fireEvent.keyDown(window, { code: "Space", key: " ", ...modifier });
+  expect(screen.queryByText("gōngzuò")).toBeNull();
+});

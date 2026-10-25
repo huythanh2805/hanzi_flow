@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Brand } from "@/components/brand";
-import { Landscape } from "@/components/landscape";
+import { SceneArtwork } from "@/components/app-ambience";
 import { AuthForm } from "@/components/auth-form";
 import { supabaseConfigured } from "@/lib/supabase/config";
 export default async function LoginPage({
@@ -16,7 +16,7 @@ export default async function LoginPage({
         <Link href="/" aria-label="HanziFlow">
           <Brand />
         </Link>
-        <Landscape />
+        <SceneArtwork />
         <div>
           <h2>
             Chậm một chút.
