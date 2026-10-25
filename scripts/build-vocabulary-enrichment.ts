@@ -1,5 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { sourceChecksum } from "./source-checksum";
 import { Converter } from "opencc-js";
 import { normalizeSource } from "../src/lib/domain/catalogue";
 import {
@@ -36,7 +37,7 @@ type Sentence = {
 };
 const raw = await readFile("data/source/all.jsonl", "utf8");
 const source = JSON.parse(await readFile("data/source/manifest.json", "utf8"));
-if (createHash("sha256").update(raw).digest("hex") !== source.sha256)
+if (sourceChecksum(raw) !== source.sha256)
   throw new Error("HSK checksum mismatch");
 const rows = normalizeSource(raw, source.id);
 const dictionary: { cedict: Dictionary[]; wiktionary: Wiktionary[] } =

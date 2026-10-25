@@ -1,5 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { createHash } from "node:crypto";
+import { sourceChecksum } from "./source-checksum";
 import { normalizeSource } from "../src/lib/domain/catalogue";
 import {
   enrichCatalogue,
@@ -16,7 +16,7 @@ export async function prepareData() {
   const manifest = JSON.parse(
     await readFile("data/source/manifest.json", "utf8"),
   );
-  if (createHash("sha256").update(source).digest("hex") !== manifest.sha256)
+  if (sourceChecksum(source) !== manifest.sha256)
     throw new Error("Pinned source checksum mismatch");
   const topics: Topic[] = JSON.parse(
     await readFile("data/topics.json", "utf8"),

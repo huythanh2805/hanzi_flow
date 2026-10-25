@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
-import { createHash } from "node:crypto";
+import { sourceChecksum } from "../scripts/source-checksum";
 import {
   aggregateProgress,
   makeLessons,
@@ -17,11 +17,25 @@ beforeAll(async () => {
   rows = (await prepareData()).rows;
 });
 describe("pinned source import", () => {
-  it("verifies the actual source checksum and all seven band counts", async () => {
-    const bytes = await readFile("data/source/all.jsonl");
-    expect(createHash("sha256").update(bytes).digest("hex")).toBe(
-      "db3cc07cb3cde4e31e439f15a4dd152c70337d56d33ec00a4f823bcccaa3db30",
-    );
+  it.each(["\n", "\r\n"])(
+    "verifies the pinned checksum with %j line endings",
+    async (ending) => {
+      const source = (await readFile("data/source/all.jsonl", "utf8"))
+        .replace(/\r\n/g, "\n")
+        .replace(/\n/g, ending);
+      const expected =
+        "48c27811c37d6ee708bcadbffeafdb559b026a5a60b4dda7bad0d6e6d9763413";
+      const manifest = JSON.parse(
+        await readFile("data/source/manifest.json", "utf8"),
+      );
+      expect(manifest.sha256).toBe(expected);
+      expect(sourceChecksum(source)).toBe(expected);
+      expect(sourceChecksum(source.replace('"id"', '"changed_id"'))).not.toBe(
+        expected,
+      );
+    },
+  );
+  it("verifies all seven band counts", () => {
     expect(rows).toHaveLength(11092);
     expect(
       Object.fromEntries(

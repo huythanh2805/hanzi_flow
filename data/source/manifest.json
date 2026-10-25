@@ -8,7 +8,8 @@
   "license": "CC BY 4.0",
   "license_url": "https://creativecommons.org/licenses/by/4.0/",
   "attribution": "HSK University (https://hskuniversity.com); upstream MIT notices in data/source/NOTICE",
-  "sha256": "db3cc07cb3cde4e31e439f15a4dd152c70337d56d33ec00a4f823bcccaa3db30",
+  "sha256": "48c27811c37d6ee708bcadbffeafdb559b026a5a60b4dda7bad0d6e6d9763413",
+  "sha256_format": "UTF-8 text with LF line endings",
   "count": 11092,
   "changes": "Source columns retained; numeric source_order parsed from original ID. Enrichment is separate."
 }

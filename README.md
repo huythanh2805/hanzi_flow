@@ -69,6 +69,8 @@ Playwright requires a Chromium installation (`npx playwright install chromium` i
 
 Vercel preset: Next.js. Add public Supabase environment variables and canonical SITE_URL. Apply/import database before deployment and configure production Auth redirect URLs. No service key required in deployed frontend/runtime. Build with `npm run build`. No external deployment is created automatically by local development.
 
+The pinned HSK source checksum in `data/source/manifest.json` uses UTF-8 text with LF line endings. Import scripts normalize CRLF before hashing so Windows and Linux checkouts verify the same source content.
+
 ## Next phase
 
 Phase 2: ts-fsrs scheduling, immutable review logs and atomic idempotent review transactions; multi-stage lessons; advanced flashcards; daily plans/queues; multiple-choice, listening, typing and real practice telemetry. Phase 3: decks, remaining exercises, recording, analytics/streaks and offline improvements. Planned navigation is labelled; it does not claim working review or practice features.
