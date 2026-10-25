@@ -1,6 +1,16 @@
 import { z } from "zod";
 import { bands, type Vocabulary, type ProgressMap, type Sense } from "./types";
 import { entryId } from "./validation";
+export const exerciseTypes = [
+  "meaning_choice",
+  "listening_choice",
+  "matching",
+] as const;
+export type ExerciseType = (typeof exerciseTypes)[number];
+export type ChoiceSnapshot = Pick<
+  PrivatePracticeQuestion,
+  "prompt" | "promptPinyin" | "direction" | "options" | "correctOptionId"
+>;
 
 export const practiceSourceSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("band"), band: z.enum(bands) }).strict(),
@@ -39,6 +49,7 @@ export const practiceStartSchema = z
     mode: z.enum(["learn", "exam"]),
     direction: z.enum(["mixed", "word-meaning", "meaning-word"]),
     language: z.enum(["vi", "en"]),
+    exerciseTypes: z.array(z.enum(exerciseTypes)).min(1).max(3).optional(),
     lessonSize: z.union([
       z.literal(10),
       z.literal(15),
@@ -47,7 +58,17 @@ export const practiceStartSchema = z
       z.literal(30),
     ]),
   })
-  .strict();
+  .strict()
+  .superRefine((v, ctx) => {
+    if (
+      v.mode === "exam" &&
+      v.exerciseTypes?.some((t) => t !== "meaning_choice")
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Thi thử hiện chỉ hỗ trợ chọn chữ và nghĩa.",
+      });
+  });
 export const practiceCommandSchema = z
   .object({
     eventId: z.uuid(),
@@ -56,6 +77,7 @@ export const practiceCommandSchema = z
     ordinal: z.number().int().min(0).max(11091).optional(),
     optionId: z.uuid().optional(),
     marked: z.boolean().optional(),
+    variant: z.enum(["primary", "choice"]).optional(),
   })
   .strict()
   .superRefine((v, ctx) => {
@@ -94,15 +116,38 @@ export type PrivatePracticeQuestion = {
   options: PracticeOption[];
   correctOptionId: string;
   feedback: Omit<PracticeFeedback, "correctOptionId" | "isCorrect">;
+  exerciseType?: ExerciseType;
+  choiceSnapshot?: ChoiceSnapshot;
+  boardId?: string;
+  boardOrdinals?: number[];
+  audioText?: string;
 };
 export type PracticeQuestion = Omit<
   PrivatePracticeQuestion,
-  "vocabularyId" | "correctOptionId" | "feedback"
+  | "vocabularyId"
+  | "correctOptionId"
+  | "feedback"
+  | "choiceSnapshot"
+  | "boardOrdinals"
 > & {
   selectedOptionId: string | null;
   marked: boolean;
   deferred?: boolean;
   feedback?: PracticeFeedback;
+  variant?: "primary" | "choice";
+  resolved?: boolean;
+  lastAttempt?: { optionId: string; isCorrect: boolean };
+  board?: {
+    id: string;
+    members: {
+      ordinal: number;
+      word: string;
+      pinyin: string;
+      resolved: boolean;
+      incorrect: boolean;
+    }[];
+    options: PracticeOption[];
+  };
 };
 export type PracticeAnswer = {
   optionId: string | null;
@@ -110,6 +155,11 @@ export type PracticeAnswer = {
   repeatPending?: boolean;
   repeatOptionId?: string | null;
   repeatAttempt?: number;
+  firstVariant?: "primary" | "choice";
+  activeVariant?: "primary" | "choice";
+  matchingResolved?: boolean;
+  boardRemoved?: boolean;
+  lastCorrect?: boolean;
 };
 export type PracticeSummary = {
   id: string;
@@ -134,6 +184,10 @@ export type PracticeSummary = {
   pendingCount?: number;
   repeatAnswered?: number;
   repeatCorrect?: number;
+  exerciseTypes?: ExerciseType[];
+  exerciseCounts?: Record<ExerciseType, number>;
+  boardCount?: number;
+  typeStats?: Record<ExerciseType, { answered: number; correct: number }>;
 };
 export type PrivatePracticeSession = Omit<
   PracticeSummary,
@@ -143,6 +197,7 @@ export type PrivatePracticeSession = Omit<
   correctCount: number;
   deferredOrdinals?: number[];
   learningQueue?: number[];
+  activityByOrdinal?: Record<number, string>;
 };
 export type PracticeBatch = {
   session: PracticeSummary;
@@ -391,22 +446,54 @@ export function practiceSummary(
   const correct = visible
     ? questions
       ? questions.filter(
-          (q) => session.answers[q.ordinal]?.optionId === q.correctOptionId,
+          (q) =>
+            session.answers[q.ordinal]?.optionId ===
+            practiceVariant(q, session.answers[q.ordinal]?.firstVariant)
+              .correctOptionId,
         ).length
       : session.correctCount
     : null;
+  const typeStats = questions
+    ? (Object.fromEntries(
+        exerciseTypes.map((type) => {
+          const subset = questions.filter(
+            (q) =>
+              (session.answers[q.ordinal]?.firstVariant === "choice"
+                ? "meaning_choice"
+                : (q.exerciseType ?? "meaning_choice")) === type,
+          );
+          return [
+            type,
+            {
+              answered: subset.filter(
+                (q) => !!session.answers[q.ordinal]?.optionId,
+              ).length,
+              correct: subset.filter(
+                (q) =>
+                  session.answers[q.ordinal]?.optionId ===
+                  practiceVariant(q, session.answers[q.ordinal]?.firstVariant)
+                    .correctOptionId,
+              ).length,
+            },
+          ];
+        }),
+      ) as PracticeSummary["typeStats"])
+    : session.typeStats;
   const {
     answers: _,
     correctCount: __,
     deferredOrdinals,
     learningQueue: ___,
+    activityByOrdinal: ____,
     ...meta
   } = session;
   void _;
   void __;
   void ___;
+  void ____;
   return {
     ...meta,
+    typeStats: visible ? typeStats : undefined,
     deferredCount: (deferredOrdinals ?? []).length,
     pendingCount:
       session.mode === "learn"
@@ -423,8 +510,19 @@ export function practiceSummary(
 export function publicPracticeQuestion(
   q: PrivatePracticeQuestion,
   session: PrivatePracticeSession,
+  context: PrivatePracticeQuestion[] = [q],
 ): PracticeQuestion {
   const answer = session.answers[q.ordinal];
+  const variant =
+    session.status === "submitted"
+      ? (answer?.firstVariant ?? "primary")
+      : (answer?.activeVariant ?? "primary");
+  const view = practiceVariant(q, variant);
+  const type =
+    variant === "choice"
+      ? "meaning_choice"
+      : (q.exerciseType ?? "meaning_choice");
+  const matching = type === "matching" && session.status !== "submitted";
   const selected =
     session.status === "submitted" || session.mode === "exam"
       ? answer?.optionId
@@ -432,26 +530,72 @@ export function publicPracticeQuestion(
         ? null
         : (answer?.repeatOptionId ?? answer?.optionId);
   const show =
-    session.status === "submitted" || (session.mode === "learn" && !!selected);
+    session.status === "submitted" ||
+    (session.mode === "learn" &&
+      !!selected &&
+      (!matching || !!answer?.matchingResolved));
   return {
     ordinal: q.ordinal,
-    direction: q.direction,
-    prompt: q.prompt,
-    promptPinyin: q.promptPinyin,
-    options: q.options,
-    selectedOptionId: selected ?? null,
+    direction: view.direction,
+    prompt: view.prompt,
+    promptPinyin: view.promptPinyin,
+    options: view.options,
+    exerciseType: type,
+    variant,
+    audioText: type === "listening_choice" ? q.audioText : undefined,
+    selectedOptionId:
+      matching && !answer?.matchingResolved ? null : (selected ?? null),
+    resolved: !!answer?.matchingResolved,
+    ...(matching && selected && answer?.lastCorrect === false
+      ? { lastAttempt: { optionId: selected, isCorrect: false } }
+      : {}),
+    ...(matching
+      ? {
+          board: {
+            id: q.boardId!,
+            members: context
+              .filter(
+                (v) =>
+                  v.boardId === q.boardId &&
+                  !session.answers[v.ordinal]?.boardRemoved,
+              )
+              .map((v) => ({
+                ordinal: v.ordinal,
+                word: v.feedback.word,
+                pinyin: v.feedback.pinyin,
+                resolved: !!session.answers[v.ordinal]?.matchingResolved,
+                incorrect: session.answers[v.ordinal]?.lastCorrect === false,
+              })),
+            options: q.options.filter(
+              (o) =>
+                !context.some(
+                  (v) =>
+                    v.boardId === q.boardId &&
+                    session.answers[v.ordinal]?.boardRemoved &&
+                    v.correctOptionId === o.id,
+                ),
+            ),
+          },
+        }
+      : {}),
     marked: answer?.marked ?? false,
     deferred: (session.deferredOrdinals ?? []).includes(q.ordinal),
     ...(show
       ? {
           feedback: {
             ...q.feedback,
-            correctOptionId: q.correctOptionId,
-            isCorrect: selected ? selected === q.correctOptionId : null,
+            correctOptionId: view.correctOptionId,
+            isCorrect: selected ? selected === view.correctOptionId : null,
           },
         }
       : {}),
   };
+}
+export function practiceVariant(
+  q: PrivatePracticeQuestion,
+  variant?: "primary" | "choice",
+): ChoiceSnapshot {
+  return variant === "choice" && q.choiceSnapshot ? q.choiceSnapshot : q;
 }
 export function practiceLearningQueue(
   session: PrivatePracticeSession,
@@ -493,6 +637,11 @@ export function applyPracticeCommand(
     optionId: null,
     marked: false,
   };
+  const variant = previous.activeVariant ?? "primary";
+  if (command.kind === "answer" && (command.variant ?? "primary") !== variant)
+    throw new Error("Biến thể câu hỏi đã thay đổi. Hãy tải lại.");
+  const view = practiceVariant(q, variant);
+  const matching = q.exerciseType === "matching" && variant === "primary";
   const queue = practiceLearningQueue(session).filter((n) => n !== q.ordinal);
   if (command.kind === "defer") {
     if (session.mode !== "learn")
@@ -502,6 +651,9 @@ export function applyPracticeCommand(
     next.answers[q.ordinal] = {
       ...previous,
       marked: true,
+      ...(q.choiceSnapshot && q.exerciseType !== "meaning_choice"
+        ? { activeVariant: "choice" as const, boardRemoved: true }
+        : {}),
       ...(previous.optionId
         ? {
             repeatPending: true,
@@ -515,18 +667,29 @@ export function applyPracticeCommand(
       ...(session.deferredOrdinals ?? []).filter((n) => n !== q.ordinal),
       q.ordinal,
     ];
-    queue.splice(
-      practiceRepeatSlot(command.eventId, queue.length),
-      0,
-      q.ordinal,
-    );
+    const boundaries = queue
+      .map((n, i) => {
+        const key = (ord: number) =>
+          session.answers[ord]?.activeVariant === "choice"
+            ? String(ord)
+            : (session.activityByOrdinal?.[ord] ?? String(ord));
+        return i === queue.length - 1 || key(n) !== key(queue[i + 1])
+          ? i + 1
+          : -1;
+      })
+      .filter((n) => n >= 0);
+    const position =
+      boundaries[practiceRepeatSlot(command.eventId, boundaries.length) - 1] ??
+      0;
+    queue.splice(position, 0, q.ordinal);
   } else if (command.kind === "answer") {
-    if (!q.options.some((o) => o.id === command.optionId))
+    if (!view.options.some((o) => o.id === command.optionId))
       throw new Error("Đáp án không hợp lệ.");
     if (
       session.mode === "learn" &&
       previous.optionId &&
-      !previous.repeatPending
+      !previous.repeatPending &&
+      !(matching && !previous.matchingResolved)
     )
       throw new Error("Câu đã chấm không thể sửa.");
     if (session.mode === "learn" && previous.optionId) {
@@ -534,22 +697,74 @@ export function applyPracticeCommand(
         ...previous,
         repeatPending: false,
         repeatOptionId: command.optionId!,
+        lastCorrect: command.optionId === view.correctOptionId,
+        ...(matching
+          ? { matchingResolved: command.optionId === view.correctOptionId }
+          : {}),
       };
       next.repeatAnswered = (session.repeatAnswered ?? 0) + 1;
       next.repeatCorrect =
         (session.repeatCorrect ?? 0) +
-        (command.optionId === q.correctOptionId ? 1 : 0);
+        (command.optionId === view.correctOptionId ? 1 : 0);
     } else {
-      next.answers[q.ordinal] = { ...previous, optionId: command.optionId! };
+      const stats = Object.fromEntries(
+        exerciseTypes.map((type) => [
+          type,
+          {
+            ...(session.typeStats?.[type] ?? {
+              answered:
+                type === "meaning_choice"
+                  ? Object.values(session.answers).filter((a) => !!a.optionId)
+                      .length
+                  : 0,
+              correct: type === "meaning_choice" ? session.correctCount : 0,
+            }),
+          },
+        ]),
+      ) as NonNullable<PracticeSummary["typeStats"]>;
+      const type =
+        variant === "choice"
+          ? "meaning_choice"
+          : (q.exerciseType ?? "meaning_choice");
+      if (previous.optionId) {
+        const oldType =
+          previous.firstVariant === "choice"
+            ? "meaning_choice"
+            : (q.exerciseType ?? "meaning_choice");
+        stats[oldType].answered--;
+        stats[oldType].correct -= Number(
+          previous.optionId ===
+            practiceVariant(q, previous.firstVariant).correctOptionId,
+        );
+      }
+      stats[type].answered++;
+      stats[type].correct += Number(command.optionId === view.correctOptionId);
+      next.typeStats = stats;
+      next.answers[q.ordinal] = {
+        ...previous,
+        optionId: command.optionId!,
+        firstVariant: variant,
+        lastCorrect: command.optionId === view.correctOptionId,
+        ...(matching
+          ? { matchingResolved: command.optionId === view.correctOptionId }
+          : {}),
+      };
       next.correctCount =
         session.correctCount +
-        (command.optionId === q.correctOptionId ? 1 : 0) -
-        (previous.optionId === q.correctOptionId ? 1 : 0);
+        (command.optionId === view.correctOptionId ? 1 : 0) -
+        (previous.optionId ===
+        practiceVariant(q, previous.firstVariant).correctOptionId
+          ? 1
+          : 0);
     }
     next.cursor = Math.min(q.ordinal + 1, session.total - 1);
     next.deferredOrdinals = (session.deferredOrdinals ?? []).filter(
       (n) => n !== q.ordinal,
     );
+    if (matching && command.optionId !== view.correctOptionId) {
+      const oldQueue = practiceLearningQueue(session);
+      queue.splice(0, queue.length, ...oldQueue);
+    }
   } else next.answers[q.ordinal] = { ...previous, marked: command.marked! };
   if (
     session.mode === "learn" &&

@@ -1,4 +1,8 @@
 import {
+  exerciseSessionState,
+  normalizedExerciseTypes,
+} from "./domain/practice-exercises";
+import {
   createCloudPractice,
   readCloudPractice,
   commitCloudPractice,
@@ -10,6 +14,7 @@ import {
 import {
   applyPracticeCommand,
   practiceSummary,
+  practiceVariant,
   publicPracticeQuestion,
   practiceStartSchema,
   practiceCommandSchema,
@@ -118,7 +123,9 @@ export async function startPractice(
       existing.mode !== parsed.mode ||
       existing.direction !== parsed.direction ||
       existing.language !== parsed.language ||
-      existing.lessonSize !== parsed.lessonSize
+      existing.lessonSize !== parsed.lessonSize ||
+      JSON.stringify(normalizedExerciseTypes(existing.exerciseTypes)) !==
+        JSON.stringify(normalizedExerciseTypes(parsed.exerciseTypes))
     )
       throw new Error("Yêu cầu đã được dùng cho bài khác.");
     return practiceSummary(existing);
@@ -156,9 +163,11 @@ export async function startPractice(
       });
       onProgress?.(Math.min(offset + 50, summary.total), summary.total);
     }
+    const frozen = await localQuestions(summary.id);
     await transaction("readwrite", async (store) => {
       store.put(
         {
+          ...exerciseSessionState(frozen),
           ...summary,
           answers: {},
           correctCount: 0,
@@ -182,16 +191,30 @@ export async function readPractice(
 ): Promise<PracticeBatch> {
   if (mode === "cloud") return actionValue(await readCloudPractice(id, offset));
   const session = await localSession(id);
-  const questions = await transaction("readonly", async (store) =>
-    Promise.all(
+  const questions = await transaction("readonly", async (store) => {
+    const page = await Promise.all(
       Array.from({ length: Math.min(25, session.total - offset) }, (_, i) =>
         result<PrivatePracticeQuestion>(store.get(questionKey(id, offset + i))),
       ),
-    ),
-  );
+    );
+    if (session.status === "submitted") return page;
+    const extra = [
+      ...new Set(page.flatMap((q) => q.boardOrdinals ?? [])),
+    ].filter((n) => !page.some((q) => q.ordinal === n));
+    return [
+      ...page,
+      ...(await Promise.all(
+        extra.map((n) =>
+          result<PrivatePracticeQuestion>(store.get(questionKey(id, n))),
+        ),
+      )),
+    ];
+  });
   return {
     session: practiceSummary(session),
-    questions: questions.map((q) => publicPracticeQuestion(q, session)),
+    questions: questions.map((q) =>
+      publicPracticeQuestion(q, session, questions),
+    ),
   };
 }
 export async function commitPractice(
@@ -223,6 +246,26 @@ export async function commitPractice(
         : await result<PrivatePracticeQuestion>(
             store.get(questionKey(id, parsed.ordinal)),
           );
+    const all = q
+      ? await Promise.all(
+          (q.boardOrdinals ?? [q.ordinal]).map((n) =>
+            result<PrivatePracticeQuestion>(store.get(questionKey(id, n))),
+          ),
+        )
+      : [];
+    if (
+      q?.exerciseType === "matching" &&
+      (session.answers[q.ordinal]?.activeVariant ?? "primary") === "primary" &&
+      parsed.kind === "answer" &&
+      all.some(
+        (v) =>
+          v.boardId === q.boardId &&
+          v.correctOptionId === parsed.optionId &&
+          (session.answers[v.ordinal]?.matchingResolved ||
+            session.answers[v.ordinal]?.boardRemoved),
+      )
+    )
+      throw new Error("Cặp này đã hoàn thành hoặc được hỏi lại.");
     const next = applyPracticeCommand(session, q, parsed),
       summary = practiceSummary(next);
     store.put(next, sessionKey(id));
@@ -257,7 +300,9 @@ export async function practiceResultIds(
         filter === "all" ||
         (filter === "marked"
           ? session.answers[q.ordinal]?.marked
-          : session.answers[q.ordinal]?.optionId !== q.correctOptionId),
+          : session.answers[q.ordinal]?.optionId !==
+            practiceVariant(q, session.answers[q.ordinal]?.firstVariant)
+              .correctOptionId),
     )
     .map((q) => q.vocabularyId);
 }

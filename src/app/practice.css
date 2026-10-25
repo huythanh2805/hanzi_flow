@@ -570,3 +570,96 @@
     display: none;
   }
 }
+
+/* Practice activities share the existing charcoal card and controls. */
+.practice-exercise-types {
+  margin-block: 24px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+.practice-exercise-types legend {
+  padding-inline: 8px;
+  font-weight: 600;
+}
+.practice-exercise-types .checkbox-label {
+  display: inline-flex;
+  margin: 12px 24px 8px 0;
+}
+.practice-exercise-preview {
+  padding: 18px 0;
+  color: var(--muted-foreground);
+  font-size: 15px;
+}
+.practice-exercise-preview strong {
+  color: var(--foreground);
+}
+.practice-listening-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding-block: 28px;
+}
+.practice-listening-prompt h2,
+.practice-matching h2 {
+  font-size: 24px;
+}
+.practice-listening-prompt > button {
+  min-height: 84px;
+  padding: 24px 32px;
+  gap: 16px;
+}
+.practice-listening-prompt
+  + .practice-options
+  .practice-option
+  > span[lang="zh-CN"] {
+  font: 24px/1.5 var(--chinese-font);
+}
+.practice-listening-prompt p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.practice-matching {
+  text-align: center;
+}
+.practice-matching-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  margin-block: 28px;
+}
+.practice-matching-columns > div {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.practice-matching-columns .practice-option {
+  flex: 1;
+  min-height: 90px;
+  width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  justify-content: space-between;
+}
+.practice-matching-columns strong {
+  font-family: var(--chinese-font);
+  font-size: 30px;
+  display: block;
+}
+.practice-matching-columns small {
+  display: block;
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+@media (max-width: 600px) {
+  .practice-matching-columns {
+    gap: 10px;
+  }
+  .practice-matching-columns .practice-option {
+    padding: 12px;
+    font-size: 15px;
+    min-height: 100px;
+  }
+}

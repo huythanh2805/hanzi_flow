@@ -24,6 +24,8 @@ import type {
   PracticeFeedback,
 } from "@/lib/domain/practice";
 import { number } from "@/lib/utils";
+import { ListeningPrompt } from "./listening-prompt";
+import { MatchingPanel } from "./matching-panel";
 import { QuickModeToggle, useQuickPractice } from "./quick-mode";
 
 export function PracticeFeedbackView({
@@ -61,6 +63,7 @@ export function PracticePlayer({ sessionId }: { sessionId: string }) {
 }
 function Player({ sessionId }: { sessionId: string }) {
   const quickMode = useQuickPractice();
+  const [heard, setHeard] = useState<string | null>(null);
   const { bootstrap } = useLearning(),
     router = useRouter(),
     mode = bootstrap.mode;
@@ -106,6 +109,8 @@ function Player({ sessionId }: { sessionId: string }) {
   }, [mode, sessionId, router]);
   const session = data?.session,
     q = data?.questions.find((item) => item.ordinal === index);
+  const hearingKey = `${sessionId}:${index}:${q?.variant ?? "primary"}`;
+  const onHeard = useCallback(() => setHeard(hearingKey), [hearingKey]);
   const blocked = busy || !!(error && hasPending),
     chosen = draft ?? q?.selectedOptionId ?? null;
   const refresh = useCallback(async () => {
@@ -172,7 +177,9 @@ function Player({ sessionId }: { sessionId: string }) {
           command.kind === "answer" &&
           quickMode &&
           fresh.session.mode === "learn" &&
-          answered?.feedback?.isCorrect
+          answered?.feedback?.isCorrect &&
+          (answered.exerciseType !== "matching" ||
+            answered.board?.members.every((m) => m.resolved))
         ) {
           if ((fresh.session.pendingCount ?? fresh.session.unanswered) === 0) {
             // Keep the submit UUID for a safe retry if finishing the last answer fails.
@@ -200,6 +207,16 @@ function Player({ sessionId }: { sessionId: string }) {
             );
             if (!mounted.current) return;
           }
+        }
+        if (
+          command.kind === "answer" &&
+          answered?.exerciseType === "matching"
+        ) {
+          const remaining =
+            answered.board?.members.find(
+              (m) => !m.resolved && m.ordinal === fresh.session.cursor,
+            ) ?? answered.board?.members.find((m) => !m.resolved);
+          if (remaining && answered.resolved) nextIndex = remaining.ordinal;
         }
         setData(fresh);
         setIndex(nextIndex);
@@ -274,7 +291,8 @@ function Player({ sessionId }: { sessionId: string }) {
         !session ||
         !q ||
         blocked ||
-        (session.mode === "learn" && q.selectedOptionId)
+        (session.mode === "learn" && q.selectedOptionId) ||
+        (q.exerciseType === "listening_choice" && heard !== hearingKey)
       )
         return;
       setDraft(optionId);
@@ -284,9 +302,10 @@ function Player({ sessionId }: { sessionId: string }) {
         revision: session.revision,
         ordinal: index,
         optionId,
+        variant: q.variant ?? "primary",
       });
     },
-    [session, q, blocked, commit, index],
+    [session, q, blocked, commit, index, heard, hearingKey],
   );
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
@@ -305,7 +324,7 @@ function Player({ sessionId }: { sessionId: string }) {
             event.target.isContentEditable))
       )
         return;
-      if (/^[1-4]$/.test(event.key)) {
+      if (q.exerciseType !== "matching" && /^[1-4]$/.test(event.key)) {
         event.preventDefault();
         answer(q.options[Number(event.key) - 1].id);
       }
@@ -408,13 +427,23 @@ function Player({ sessionId }: { sessionId: string }) {
       </div>
       <h1>{session.title}</h1>
       <p className="page-description">
-        {q.direction === "word-meaning"
-          ? "Nhìn chữ Hán, chọn nghĩa đúng."
-          : "Nhìn nghĩa, chọn chữ Hán đúng."}
+        {q.exerciseType === "matching"
+          ? "Ghép từng từ với nghĩa tương ứng."
+          : q.exerciseType === "listening_choice"
+            ? "Nghe âm thanh, chọn chữ Hán đúng."
+            : q.direction === "word-meaning"
+              ? "Nhìn chữ Hán, chọn nghĩa đúng."
+              : "Nhìn nghĩa, chọn chữ Hán đúng."}
       </p>
       <div className="practice-player-meta">
         <span>
-          Câu <strong>{number(index + 1)}</strong> / {number(session.total)}
+          {q.exerciseType === "matching" ? (
+            <>Ghép cặp · {number(q.board?.members.length ?? 0)} từ</>
+          ) : (
+            <>
+              Câu <strong>{number(index + 1)}</strong> / {number(session.total)}
+            </>
+          )}
         </span>
         <span>
           {number(session.answered)} đã trả lời
@@ -458,56 +487,97 @@ function Player({ sessionId }: { sessionId: string }) {
             {reviewControl}
           </div>
         )}
-        <p className="eyebrow">
-          {q.deferred && <span>ĐANG HỎI LẠI · </span>}
-          {q.direction === "word-meaning"
-            ? "CHỌN NGHĨA ĐÚNG"
-            : "CHỌN CHỮ HÁN ĐÚNG"}
-        </p>
-        <h2
-          className={
-            q.direction === "word-meaning"
-              ? "practice-hanzi"
-              : "practice-meaning"
-          }
-          lang={
-            q.direction === "word-meaning"
-              ? "zh-CN"
-              : session.language === "vi"
-                ? "vi"
-                : "en"
-          }
-        >
-          {q.prompt}
-        </h2>
-        {q.promptPinyin && (
-          <p className="practice-prompt-pinyin">{q.promptPinyin}</p>
-        )}
-        {q.direction === "word-meaning" && <SpeakButton word={q.prompt} />}
-        <div className="practice-options" role="group" aria-label="Các đáp án">
-          {q.options.map((option, i) => {
-            const correct = q.feedback?.correctOptionId === option.id,
-              wrong = !!q.feedback && chosen === option.id && !correct;
-            return (
-              <button
-                key={option.id}
-                className={`practice-option${chosen === option.id ? " selected" : ""}${correct ? " correct" : ""}${wrong ? " incorrect" : ""}`}
-                disabled={blocked || locked}
-                aria-pressed={chosen === option.id}
-                onClick={() => answer(option.id)}
-              >
-                <span className="practice-option-number">{i + 1}</span>
-                <span
-                  lang={q.direction === "meaning-word" ? "zh-CN" : undefined}
+        {q.exerciseType === "matching" ? (
+          <MatchingPanel
+            question={q}
+            questions={data.questions}
+            disabled={blocked}
+            onSelect={(n) => void go(n)}
+            onAnswer={answer}
+          />
+        ) : (
+          <>
+            <p className="eyebrow">
+              {q.deferred && <span>ĐANG HỎI LẠI · </span>}
+              {q.exerciseType === "listening_choice"
+                ? "NGHE VÀ CHỌN CHỮ HÁN"
+                : q.direction === "word-meaning"
+                  ? "CHỌN NGHĨA ĐÚNG"
+                  : "CHỌN CHỮ HÁN ĐÚNG"}
+            </p>
+            {q.exerciseType === "listening_choice" ? (
+              <ListeningPrompt
+                key={hearingKey}
+                text={q.audioText!}
+                disabled={blocked}
+                onHeard={onHeard}
+              />
+            ) : (
+              <>
+                <h2
+                  className={
+                    q.direction === "word-meaning"
+                      ? "practice-hanzi"
+                      : "practice-meaning"
+                  }
+                  lang={
+                    q.direction === "word-meaning"
+                      ? "zh-CN"
+                      : session.language === "vi"
+                        ? "vi"
+                        : "en"
+                  }
                 >
-                  {option.label}
-                </span>
-                {correct && <Check size={19} />}
-              </button>
-            );
-          })}
-        </div>
-        {q.feedback && (
+                  {q.prompt}
+                </h2>
+                {q.promptPinyin && (
+                  <p className="practice-prompt-pinyin">{q.promptPinyin}</p>
+                )}
+                {q.direction === "word-meaning" && (
+                  <SpeakButton word={q.prompt} />
+                )}
+              </>
+            )}
+            <div
+              className="practice-options"
+              role="group"
+              aria-label="Các đáp án"
+            >
+              {q.options.map((option, i) => {
+                const correct = q.feedback?.correctOptionId === option.id,
+                  wrong = !!q.feedback && chosen === option.id && !correct;
+                return (
+                  <button
+                    key={option.id}
+                    className={`practice-option${chosen === option.id ? " selected" : ""}${correct ? " correct" : ""}${wrong ? " incorrect" : ""}`}
+                    disabled={
+                      blocked ||
+                      locked ||
+                      (q.exerciseType === "listening_choice" &&
+                        heard !== hearingKey)
+                    }
+                    aria-pressed={chosen === option.id}
+                    onClick={() => answer(option.id)}
+                  >
+                    <span className="practice-option-number">{i + 1}</span>
+                    <span
+                      lang={
+                        q.direction === "meaning-word" ||
+                        q.exerciseType === "listening_choice"
+                          ? "zh-CN"
+                          : undefined
+                      }
+                    >
+                      {option.label}
+                    </span>
+                    {correct && <Check size={19} />}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+        {q.feedback && q.exerciseType !== "matching" && (
           <div
             className={`practice-feedback ${q.feedback.isCorrect ? "is-correct" : "is-incorrect"}`}
             aria-live="polite"
@@ -648,8 +718,10 @@ function Player({ sessionId }: { sessionId: string }) {
         </section>
       )}
       <p className="practice-keyboard-hint">
-        Phím 1–4 chọn đáp án · ← → chuyển câu · Không thay đổi trạng thái Thành
-        thạo.
+        {q.exerciseType === "matching"
+          ? "Tab và Enter chọn cặp"
+          : "Phím 1–4 chọn đáp án"}{" "}
+        · ← → chuyển câu · Không thay đổi trạng thái Thành thạo.
       </p>
     </div>
   );

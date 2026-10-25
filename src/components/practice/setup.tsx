@@ -26,6 +26,11 @@ import type {
 } from "@/lib/domain/practice";
 import { number } from "@/lib/utils";
 import { QuickModeToggle } from "./quick-mode";
+import { useMandarinVoice } from "./listening-prompt";
+import { previewPractice } from "@/app/practice-actions";
+import { actionValue } from "@/lib/domain/action-result";
+import { exerciseTypes, type ExerciseType } from "@/lib/domain/practice";
+import { exerciseLabels } from "@/lib/domain/practice-exercises";
 
 export type PracticeSetupSeed = {
   band?: string;
@@ -42,6 +47,20 @@ export function PracticeSetup({ seed = {} }: { seed?: PracticeSetupSeed }) {
   );
 }
 function SetupForm({ seed }: { seed: PracticeSetupSeed }) {
+  const voice = useMandarinVoice();
+  const [previewAttempt, setPreviewAttempt] = useState(0);
+  const [types, setTypes] = useState<ExerciseType[]>([...exerciseTypes]);
+  const [preview, setPreview] = useState<{
+    key: string;
+    requestId: string;
+    total: number;
+    exerciseCounts?: Record<ExerciseType, number>;
+    boardCount?: number;
+  } | null>(null);
+  const [previewError, setPreviewError] = useState<{
+    key: string;
+    message: string;
+  } | null>(null);
   const { bootstrap, preferences, progress } = useLearning(),
     router = useRouter();
   const initialBand = bands.includes(seed.band as (typeof bands)[number])
@@ -136,22 +155,79 @@ function SetupForm({ seed }: { seed: PracticeSetupSeed }) {
     setError("");
     request.current = null;
   }
-  async function begin() {
-    if (!count || busy) return;
-    const source: PracticeSource =
-      sourceMode === "groups"
-        ? {
-            kind: "groups",
-            collectionType,
-            collectionId,
-            groups: [...selected].sort((a, b) => a - b),
+  const source: PracticeSource =
+    sourceMode === "groups"
+      ? {
+          kind: "groups",
+          collectionType,
+          collectionId,
+          groups: [...selected].sort((a, b) => a - b),
+        }
+      : sourceMode === "band"
+        ? { kind: "band", band: band as (typeof bands)[number] }
+        : sourceMode === "personal"
+          ? { kind: "personal", filter: personal }
+          : { kind: "entries", ids: explicit };
+  const chosenTypes =
+    mode === "exam" ? (["meaning_choice"] as ExerciseType[]) : types;
+  const configuration = JSON.stringify({
+    source,
+    mode,
+    direction,
+    language,
+    lessonSize: preferences.lessonSize,
+    exerciseTypes: chosenTypes,
+  });
+  const personalIds = Object.values(progress)
+    .filter((p) => (personal === "learned" ? p.state !== "NEW" : p[personal]))
+    .map((p) => p.vocabulary_id);
+  const personalKey =
+    sourceMode === "personal" ? JSON.stringify(personalIds) : "[]";
+  const previewKey = configuration + personalKey;
+  useEffect(() => {
+    if (!count || !JSON.parse(configuration).exerciseTypes.length) return;
+    let active = true;
+    const timer = setTimeout(() => {
+      const requestId = crypto.randomUUID();
+      previewPractice(
+        { ...JSON.parse(configuration), requestId },
+        JSON.parse(personalKey),
+      )
+        .then(actionValue)
+        .then((result) => {
+          if (active) {
+            setPreview({
+              key: previewKey,
+              requestId,
+              total: result.total,
+              exerciseCounts: result.exerciseCounts,
+              boardCount: result.boardCount,
+            });
+            setPreviewError(null);
           }
-        : sourceMode === "band"
-          ? { kind: "band", band: band as (typeof bands)[number] }
-          : sourceMode === "personal"
-            ? { kind: "personal", filter: personal }
-            : { kind: "entries", ids: explicit };
-    const requestId = request.current ?? crypto.randomUUID();
+        })
+        .catch((e) => {
+          if (active)
+            setPreviewError({
+              key: previewKey,
+              message:
+                e instanceof Error ? e.message : "Không kiểm tra được bộ từ.",
+            });
+        });
+    }, 350);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [configuration, personalKey, previewKey, count, previewAttempt]);
+  const previewReady =
+    preview?.key === previewKey && previewError?.key !== previewKey;
+  const voiceMissing =
+    chosenTypes.includes("listening_choice") && voice !== "ready";
+  async function begin() {
+    if (!count || busy || !previewReady || voiceMissing || !chosenTypes.length)
+      return;
+    const requestId = request.current ?? preview.requestId;
     request.current = requestId;
     setBusy(true);
     setError("");
@@ -166,6 +242,7 @@ function SetupForm({ seed }: { seed: PracticeSetupSeed }) {
           direction,
           language,
           lessonSize: preferences.lessonSize,
+          exerciseTypes: chosenTypes,
         },
         progress,
         (done, total) =>
@@ -492,7 +569,81 @@ function SetupForm({ seed }: { seed: PracticeSetupSeed }) {
             </select>
           </label>
         </div>
-        {mode === "learn" && <QuickModeToggle disabled={busy} />}
+        {mode === "learn" && (
+          <>
+            <fieldset className="practice-exercise-types" disabled={busy}>
+              <legend>Loại bài luyện</legend>
+              <p className="muted">
+                Chọn một hoặc nhiều dạng. Mỗi từ chỉ xuất hiện ở một dạng trong
+                lượt đầu.
+              </p>
+              {exerciseTypes.map((type) => (
+                <label className="checkbox-label" key={type}>
+                  <input
+                    type="checkbox"
+                    checked={types.includes(type)}
+                    onChange={(e) => {
+                      setTypes((old) =>
+                        e.target.checked
+                          ? [...old, type]
+                          : old.filter((t) => t !== type),
+                      );
+                      request.current = null;
+                    }}
+                  />
+                  {exerciseLabels[type]}
+                </label>
+              ))}
+              {!types.length && (
+                <p role="alert">Hãy chọn ít nhất một loại bài.</p>
+              )}
+              {types.includes("listening_choice") && voice !== "ready" && (
+                <p className="content-note" role="status">
+                  {voice === "loading"
+                    ? "Đang kiểm tra giọng Mandarin…"
+                    : "Thiết bị chưa có giọng Mandarin. Hãy cài giọng tiếng Trung rồi tải lại, hoặc bỏ chọn Nghe chọn chữ để tiếp tục."}
+                </p>
+              )}
+            </fieldset>
+            <QuickModeToggle disabled={busy} />
+          </>
+        )}
+        {count > 0 && chosenTypes.length > 0 && (
+          <div className="practice-exercise-preview" role="status">
+            {previewError?.key === previewKey ? (
+              <div className="form-error" role="alert">
+                {previewError.message}
+                <br />
+                <Button
+                  variant="ghost"
+                  disabled={busy}
+                  onClick={() => {
+                    setPreview(null);
+                    setPreviewError(null);
+                    setPreviewAttempt((n) => n + 1);
+                  }}
+                >
+                  Kiểm tra lại
+                </Button>
+              </div>
+            ) : previewReady ? (
+              <>
+                <strong>Phân bổ {number(preview.total)} từ</strong>
+                <p>
+                  {chosenTypes
+                    .map(
+                      (t) =>
+                        `${exerciseLabels[t]}: ${number(preview.exerciseCounts?.[t] ?? 0)} từ`,
+                    )
+                    .join(" · ")}
+                  {!!preview.boardCount && ` · ${preview.boardCount} bảng ghép`}
+                </p>
+              </>
+            ) : (
+              <p>Đang kiểm tra toàn bộ từ và phân bổ dạng bài…</p>
+            )}
+          </div>
+        )}
         <div className="practice-start">
           <div>
             <strong>
@@ -505,7 +656,16 @@ function SetupForm({ seed }: { seed: PracticeSetupSeed }) {
               Mỗi từ một lần trong lượt đầu.
             </p>
           </div>
-          <Button disabled={busy || !count} onClick={() => void begin()}>
+          <Button
+            disabled={
+              busy ||
+              !count ||
+              !chosenTypes.length ||
+              !previewReady ||
+              voiceMissing
+            }
+            onClick={() => void begin()}
+          >
             <Play size={18} />
             {busy ? "Đang chuẩn bị…" : "Bắt đầu"}
             <ArrowRight size={18} />

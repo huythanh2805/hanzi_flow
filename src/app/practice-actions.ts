@@ -7,7 +7,6 @@ import { trialCatalogue } from "@/lib/server/catalogue";
 import { entryId } from "@/lib/domain/validation";
 import type { ActionResult } from "@/lib/domain/action-result";
 import {
-  buildPracticeQuestions,
   practiceLexicon,
   selectPracticeIds,
   practiceStartSchema,
@@ -20,6 +19,15 @@ import {
   type PrivatePracticeQuestion,
   type PrivatePracticeSession,
 } from "@/lib/domain/practice";
+import {
+  buildExerciseQuestions,
+  normalizedExerciseTypes,
+  exerciseSessionState,
+} from "@/lib/domain/practice-exercises";
+import {
+  cloudExerciseRecipe,
+  installCloudExercises,
+} from "@/lib/server/practice-exercises";
 import topics from "../../data/topics.json";
 
 async function client() {
@@ -34,6 +42,14 @@ async function client() {
   return db;
 }
 function message(error: { message: string }) {
+  if (error.message.includes("VARIANT_CHANGED"))
+    return new Error(
+      "Dạng câu hỏi đã thay đổi ở thiết bị khác. Hãy tải trạng thái đã lưu.",
+    );
+  if (error.message.includes("PAIR_UNAVAILABLE"))
+    return new Error(
+      "Cặp này đã hoàn thành hoặc được hỏi lại. Hãy tải trạng thái đã lưu.",
+    );
   if (error.message.includes("STALE_REVISION"))
     return new Error("STALE_REVISION");
   if (error.message.includes("SESSION_NOT_FOUND"))
@@ -45,6 +61,8 @@ async function createCloudPracticeData(
 ): Promise<PracticeSummary> {
   const parsed = practiceStartSchema.parse(input),
     db = await client();
+  if (parsed.exerciseTypes?.some((t) => t !== "meaning_choice"))
+    return installCloudExercises(parsed);
   const { data, error } = await db.rpc("practice_create", { p_input: parsed });
   if (error) throw message(error);
   return data;
@@ -137,13 +155,15 @@ async function prepareTrialPracticeData(
     {},
     parentIds,
   );
-  const questions = buildPracticeQuestions(
+  const built = buildExerciseQuestions(
     practiceLexicon(rows, parsed.language),
     ids,
     parsed.direction,
     parsed.requestId,
     randomUUID,
+    parsed.exerciseTypes,
   );
+  const { questions } = built;
   const source = parsed.source;
   const collectionName =
     source.kind === "groups"
@@ -176,12 +196,15 @@ async function prepareTrialPracticeData(
     total: questions.length,
     status: "active",
     revision: 0,
-    cursor: 0,
     createdAt: new Date().toISOString(),
     submittedAt: null,
     parentId: source.kind === "retry" ? source.parentId : null,
     answers: {},
     correctCount: 0,
+    exerciseTypes: normalizedExerciseTypes(parsed.exerciseTypes),
+    exerciseCounts: built.counts,
+    boardCount: built.boardCount,
+    ...exerciseSessionState(questions),
   };
   for (const [key, value] of prepared)
     if (value.expires < Date.now()) prepared.delete(key);
@@ -255,4 +278,22 @@ export async function prepareTrialPractice(
 }
 export async function downloadTrialPractice(id: string, offset: number) {
   return respond(() => downloadTrialPracticeData(id, offset));
+}
+
+export async function previewPractice(
+  input: PracticeStart,
+  personalIds: string[] = [],
+  parentIds?: string[],
+) {
+  return respond(async () => {
+    const parsed = practiceStartSchema.parse(input);
+    if (!supabaseConfigured())
+      return prepareTrialPracticeData(parsed, personalIds, parentIds);
+    const recipe = await cloudExerciseRecipe(parsed);
+    return {
+      total: recipe.questions.length,
+      exerciseCounts: recipe.counts,
+      boardCount: recipe.boardCount,
+    };
+  });
 }

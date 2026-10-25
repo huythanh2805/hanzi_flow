@@ -1,4 +1,5 @@
 "use client";
+import { exerciseLabels } from "@/lib/domain/practice-exercises";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -142,6 +143,20 @@ function Result({ sessionId }: { sessionId: string }) {
         title={`${percent}% câu trả lời đúng.`}
         description={s.title}
       />
+      {s.typeStats && (
+        <div className="practice-exercise-preview">
+          <small>Theo dạng bài · đúng / đã trả lời</small>
+          <p>
+            {Object.entries(s.typeStats)
+              .filter(([, v]) => v.answered > 0)
+              .map(
+                ([type, v]) =>
+                  `${exerciseLabels[type as keyof typeof exerciseLabels]}: ${v.correct}/${v.answered}`,
+              )
+              .join(" · ")}
+          </p>
+        </div>
+      )}
       <div className="practice-result-stats">
         {[
           ["Tổng số câu", s.total],

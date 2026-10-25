@@ -175,7 +175,9 @@ try {
       await page
         .getByLabel("Ngôn ngữ nghĩa", { exact: true })
         .selectOption("vi");
-      await page.getByRole("button", { name: "Bắt đầu", exact: true }).click();
+      await expect(
+        page.getByRole("button", { name: "Bắt đầu", exact: true }),
+      ).toBeDisabled();
       await expect(page.locator(".form-error[role=alert]")).toContainText(
         "hsk30-b79-0367",
       );

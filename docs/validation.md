@@ -1,5 +1,17 @@
 # Executed validation — 2026-10-25
 
+## Matching and listening practice
+
+Implemented the plan in [practice.md](practice.md): three selectable learning activities, default mixed; exact preflight counts; 2–4-pair boards; Mandarin listening with generic accessible prompts and replay; frozen MCQ fallbacks; per-activity first-round results. Exams retain the original MCQ behavior. Matching failures can retry without revealing a key or changing the original grade. Defer interleaves between complete activities. Matching auto-selection follows the saved cursor, including Quick mode and reload.
+
+Passed: 87 unit/component tests, all 23 browser E2E tests, plus five consecutive mobile/keyboard matching Quick mode runs. Browser cases cover mixed activity selection, wrong matching/reload/defer, listening playback gating, a missing/Cantonese-only voice, matching board completion, complete boards across the 25-question boundary, prior MCQ/repeat/exam behavior, stale tabs, full 5,636-question loading and Flashcards/core regression. Speech was mocked; actual engine audio quality is not asserted.
+
+The isolated PostgreSQL suite seeded all 11,092 real entries and bilingual senses. It verified owner isolation, denied raw tables and private installation RPCs, unsupported exam selection rejection, immutable original answers, safe matching retries, fallback-variant grading, hidden exam breakdowns, unchanged learning progress and complete mixed Band 7–9 installation/read. The last local full mixed installation took about 1.3 seconds with a 0.21-second final-page read under concurrent browser checks.
+
+Migration `202610250008_practice_exercises.sql` was applied to the connected project, with follow-up installer/validation updates. SQL Editor records: `3987c25f-6b87-4084-8a37-06f580d9949b`, `6f6cd8db-65d3-4aca-b9bc-3f9f90178efa` and `70a21f14-9856-44d0-937a-cddbf1733e79`. Installation performs a bulk insert with JIT disabled and a function-scoped 60-second REST budget; no global or role timeout was changed. The optimized production server and actual Supabase API verified read-only preview, authenticated server-side creation, independent-browser resume, matching retries/defer, first-variant grading, listening, private keys/installation and exam privacy. A real full mixed Band 7–9 recipe installed all 5,636 exact IDs and returned its final batch; the API installation measured about 20.9 seconds. Temporary confirmed QA users and cascading records were removed in `finally`, and no existing user's vocabulary/progress was edited.
+
+Desktop/mobile screenshots were inspected in ignored `.local-tests/practice-exercises/`. The production build passed, and a scan of 27 browser JS bundles found no configured administrative key. The local database cluster and temporary production server were stopped; the user's localhost:3000 development server was retained. No deployment or commit was created. The existing incomplete Vietnamese gloss noted below remains unchanged.
+
 ## Single repeat button
 
 Removed the duplicate Hỏi lại button and its helper block below learning answers, together with the unused CSS. The single **Hỏi lại lượt sau** action remains in the card toolbar and keeps its existing skip/random-queue behavior. Updated browser/cloud checks to use that action; browser setup now asserts exactly one repeat action and no lower helper block. All nine practice browser tests, strict typecheck and ESLint passed. No backend or grading changes were made.

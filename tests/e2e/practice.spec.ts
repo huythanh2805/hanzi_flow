@@ -5,6 +5,18 @@ import type {
 } from "../../src/lib/domain/practice";
 
 async function start(page: Page) {
+  await expect(
+    page.getByLabel("Ch\u1ebf \u0111\u1ed9", { exact: true }),
+  ).toBeVisible();
+  for (const label of ["Nghe ch\u1ecdn ch\u1eef", "Gh\u00e9p c\u1eb7p"]) {
+    const toggle = page.getByLabel(label, { exact: true });
+    if (
+      (await page
+        .getByLabel("Ch\u1ebf \u0111\u1ed9", { exact: true })
+        .inputValue()) === "learn"
+    )
+      await toggle.uncheck();
+  }
   await page.getByRole("button", { name: "Bắt đầu", exact: true }).click();
   await expect(page).toHaveURL(/\/practice\/[\da-f-]{36}$/, { timeout: 90000 });
   await expect(page.locator(".practice-option")).toHaveCount(4);

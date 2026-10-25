@@ -3,6 +3,12 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import type { Vocabulary } from "../src/lib/domain/types";
 import { practiceRepeatSlot } from "../src/lib/domain/practice";
+import { practiceLexicon } from "../src/lib/domain/practice";
+import {
+  buildExerciseQuestions,
+  exerciseSessionState,
+} from "../src/lib/domain/practice-exercises";
+import { randomUUID } from "node:crypto";
 const psql =
   process.env.PSQL_PATH ?? "C:/Program Files/PostgreSQL/16/bin/psql.exe";
 let database = "postgres";
@@ -63,6 +69,7 @@ try {
     "202610250005_practice_defer.sql",
     "202610250006_practice_interleaved_repeats.sql",
     "202610250007_practice_random_repeat_position.sql",
+    "202610250008_practice_exercises.sql",
   ])
     sql(await readFile(`supabase/migrations/${file}`, "utf8"));
   console.log("PASS: practice migration parses with restricted roles and RLS.");
@@ -467,6 +474,170 @@ try {
   );
   if (retry.parentId !== sid || retry.total !== 1)
     throw new Error("Retry did not create separate child session");
+  const recipe = buildExerciseQuestions(
+    practiceLexicon(rows, "en"),
+    rows
+      .filter((v) => v.band === "1")
+      .slice(0, 30)
+      .map((v) => v.id),
+    "mixed",
+    randomUUID(),
+    randomUUID,
+    ["meaning_choice", "listening_choice", "matching"],
+  );
+  const input = {
+    requestId: randomUUID(),
+    source: {
+      kind: "entries",
+      ids: recipe.questions.map((q) => q.vocabularyId),
+    },
+    mode: "learn",
+    direction: "mixed",
+    language: "en",
+    lessonSize: 20,
+    exerciseTypes: ["meaning_choice", "listening_choice", "matching"],
+  };
+  let unsupportedExamRejected = false;
+  try {
+    sql(
+      `${actor}select public.practice_create(${literal({ ...input, mode: "exam", requestId: randomUUID() })});`,
+    );
+  } catch {
+    unsupportedExamRejected = true;
+  }
+  if (!unsupportedExamRejected)
+    throw new Error("Raw RPC accepted unsupported exam activities");
+  const install = `select public.practice_install_exercises('00000000-0000-0000-0000-000000000001',${literal(input)},${literal(recipe.questions)},array[${exerciseSessionState(recipe.questions).learningQueue!.join(",")}],${literal(recipe.counts)},${recipe.boardCount});`;
+  const exerciseId = sql(`set role service_role;${install}`);
+  if (sql(`set role service_role;${install}`) !== exerciseId)
+    throw new Error("Exercise creation is not idempotent");
+  try {
+    sql(`${actor}${install}`);
+    throw new Error("Browser installed private keys");
+  } catch (e) {
+    if (!String(e).includes("permission denied")) throw e;
+  }
+  const mq = recipe.questions.find((q) => q.exerciseType === "matching")!;
+  let revision = 0;
+  const exerciseSend = (
+    kind: string,
+    ordinal: number,
+    optionId?: string,
+    variant = "primary",
+  ) =>
+    JSON.parse(
+      sql(
+        `${actor}select public.practice_commit('${exerciseId}',${literal({ eventId: randomUUID(), revision: revision++, kind, ordinal, optionId, variant })});`,
+      ),
+    );
+  const wrong = mq.options.find((o) => o.id !== mq.correctOptionId)!.id;
+  exerciseSend("answer", mq.ordinal, wrong);
+  let read = JSON.parse(
+    sql(
+      `${actor}select public.practice_read('${exerciseId}',${mq.ordinal},1);`,
+    ),
+  );
+  let visible = read.questions.find(
+    (q: { ordinal: number }) => q.ordinal === mq.ordinal,
+  );
+  if (
+    visible.feedback ||
+    visible.correctOptionId ||
+    !visible.lastAttempt ||
+    read.session.correct !== 0
+  )
+    throw new Error(
+      "Wrong matching answer exposed a key or changed first score",
+    );
+  exerciseSend("answer", mq.ordinal, mq.correctOptionId);
+  read = JSON.parse(
+    sql(
+      `${actor}select public.practice_read('${exerciseId}',${mq.ordinal},1);`,
+    ),
+  );
+  visible = read.questions.find(
+    (q: { ordinal: number }) => q.ordinal === mq.ordinal,
+  );
+  if (
+    !visible.resolved ||
+    read.session.correct !== 0 ||
+    read.session.repeatCorrect !== 1
+  )
+    throw new Error("Matching retry grading failed");
+  const deferredPair = recipe.questions.find(
+    (q) => q.exerciseType === "matching" && q.ordinal !== mq.ordinal,
+  )!;
+  exerciseSend("defer", deferredPair.ordinal);
+  exerciseSend(
+    "answer",
+    deferredPair.ordinal,
+    deferredPair.choiceSnapshot!.correctOptionId,
+    "choice",
+  );
+  const audio = recipe.questions.find(
+    (q) => q.exerciseType === "listening_choice",
+  )!;
+  read = JSON.parse(
+    sql(
+      `${actor}select public.practice_read('${exerciseId}',${audio.ordinal},1);`,
+    ),
+  );
+  visible = read.questions.find(
+    (q: { ordinal: number }) => q.ordinal === audio.ordinal,
+  );
+  if (
+    visible.prompt !== "" ||
+    visible.feedback ||
+    visible.promptPinyin ||
+    !visible.audioText
+  )
+    throw new Error("Listening prompt leaked visible solution");
+  exerciseSend("submit", 0);
+  read = JSON.parse(
+    sql(
+      `${actor}select public.practice_read('${exerciseId}',${deferredPair.ordinal},1);`,
+    ),
+  );
+  visible = read.questions.find(
+    (q: { ordinal: number }) => q.ordinal === deferredPair.ordinal,
+  );
+  if (!visible.feedback.isCorrect || read.session.correct !== 1)
+    throw new Error("First MCQ fallback was graded with a matching key");
+  if (
+    JSON.parse(sql(`${actor}select to_json(public.practice_lexicon('en'));`))
+      .length !== 11092
+  )
+    throw new Error("Compact catalogue was truncated");
+  console.log(
+    "PASS: mixed snapshots, service-only atomic installation, idempotent creation, matching retry privacy, first-variant grading, listening redaction and complete compact lexicon.",
+  );
+  const fullExercise = buildExerciseQuestions(
+    practiceLexicon(rows, "en"),
+    rows.filter((v) => v.band === "7-9").map((v) => v.id),
+    "mixed",
+    randomUUID(),
+    randomUUID,
+    ["meaning_choice", "listening_choice", "matching"],
+  );
+  const fullInput = {
+    ...input,
+    requestId: randomUUID(),
+    source: { kind: "band", band: "7-9" },
+  };
+  const fullStart = Date.now();
+  const fullId = sql(
+    `set role service_role;select public.practice_install_exercises('00000000-0000-0000-0000-000000000001',${literal(fullInput)},${literal(fullExercise.questions)},array[${exerciseSessionState(fullExercise.questions).learningQueue!.join(",")}],${literal(fullExercise.counts)},${fullExercise.boardCount});`,
+  );
+  console.log(
+    `Full mixed recipe installed locally in ${Date.now() - fullStart}ms (${Math.round(JSON.stringify(fullExercise.questions).length / 1024)} KiB).`,
+  );
+  const fullReadStart = Date.now();
+  const fullPage = JSON.parse(
+    sql(`${actor}select public.practice_read('${fullId}',5625,25);`),
+  );
+  if (fullPage.session.total !== 5636)
+    throw new Error("Truncated full mixed session");
+  console.log(`Full mixed final-page read in ${Date.now() - fullReadStart}ms.`);
   const after = sql(
     "select md5(coalesce(string_agg(row_to_json(t)::text,'' order by user_id,vocabulary_id),'')) from public.user_vocabulary t;",
   );
