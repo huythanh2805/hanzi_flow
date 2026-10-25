@@ -1,0 +1,56 @@
+[
+  {
+    "file": "cedict.txt.gz",
+    "url": "https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz",
+    "bytes": 3981702,
+    "sha256": "e6e14c761ebc1e66ae2ad7b08fc4c577d6927472bb059d70db6111f0c06abee9"
+  },
+  {
+    "file": "viwiktionary.jsonl.gz",
+    "url": "https://kaikki.org/viwiktionary/raw-wiktextract-data.jsonl.gz",
+    "bytes": 34420749,
+    "sha256": "dcdaf93d642ae1d1c4d495b68d90eb572fac86d00281044cf804e0d98147a25e"
+  },
+  {
+    "file": "cmn-detailed.tsv.bz2",
+    "url": "https://downloads.tatoeba.org/exports/per_language/cmn/cmn_sentences_detailed.tsv.bz2",
+    "bytes": 1725873,
+    "sha256": "7af009b234bbb21ed6a254c2b55fa7c81c9dd53509d0982cd92c1097573f9af5"
+  },
+  {
+    "file": "vie-detailed.tsv.bz2",
+    "url": "https://downloads.tatoeba.org/exports/per_language/vie/vie_sentences_detailed.tsv.bz2",
+    "bytes": 640322,
+    "sha256": "ad0ecd6e505a4a9a5399208f30025b39e3126c3492827326e6bb5afa04d87de2"
+  },
+  {
+    "file": "eng-detailed.tsv.bz2",
+    "url": "https://downloads.tatoeba.org/exports/per_language/eng/eng_sentences_detailed.tsv.bz2",
+    "bytes": 34953888,
+    "sha256": "c39d2fab0cc5bc2b798b539134b83abaf5dec723a059ce55496907d08e3e9030"
+  },
+  {
+    "file": "cmn-vie-links.tsv.bz2",
+    "url": "https://downloads.tatoeba.org/exports/per_language/cmn/cmn-vie_links.tsv.bz2",
+    "bytes": 4391,
+    "sha256": "bd1db1ec9741ae918c62b2fd41b5b569c0e3be44b222a9a9d417a928d7d2d26c"
+  },
+  {
+    "file": "cmn-eng-links.tsv.bz2",
+    "url": "https://downloads.tatoeba.org/exports/per_language/cmn/cmn-eng_links.tsv.bz2",
+    "bytes": 481350,
+    "sha256": "3c996fc24421df363f8b17dfb689698ead9bb3ba2be207fc415fda2823da333a"
+  },
+  {
+    "file": "cmn-cc0.tsv.bz2",
+    "url": "https://downloads.tatoeba.org/exports/per_language/cmn/cmn_sentences_CC0.tsv.bz2",
+    "bytes": 102,
+    "sha256": "72c6ac699497cbc9b75f6c021ef16dfaa91ab760fbb407217902b6b5388401c0"
+  },
+  {
+    "file": "eng-cc0.tsv.bz2",
+    "url": "https://downloads.tatoeba.org/exports/per_language/eng/eng_sentences_CC0.tsv.bz2",
+    "bytes": 1288635,
+    "sha256": "a144a0c52f8be13bee7cc30eb109eb5836803f22128a8ef8376c1ca5c6c5cf8a"
+  }
+]

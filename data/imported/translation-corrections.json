@@ -1,0 +1,48 @@
+{
+  "status": "machine-unreviewed",
+  "author": "Codex-assisted translation correction; not human approval",
+  "corrections": [
+    {
+      "entry_id": "hsk30-b1-0001",
+      "english": "to love; to be fond of; to like",
+      "vi": "yêu; yêu thích; thích"
+    },
+    {
+      "entry_id": "hsk30-b1-0001",
+      "english": "affection",
+      "vi": "tình yêu; tình cảm"
+    },
+    {
+      "entry_id": "hsk30-b1-0001",
+      "english": "to be inclined (to do sth); to tend to (happen)",
+      "vi": "hay; có xu hướng (làm gì hoặc diễn ra)"
+    },
+    {
+      "entry_id": "hsk30-b1-0002",
+      "english": "to like; to be fond of; to take pleasure in; to be keen on",
+      "vi": "thích; yêu thích; ham thích; say mê"
+    },
+    {
+      "entry_id": "hsk30-b1-0004",
+      "english": "(coll.) father; dad",
+      "vi": "bố; ba; cha"
+    },
+    {
+      "entry_id": "hsk30-b1-0005",
+      "english": "(modal particle indicating suggestion or surmise)",
+      "vi": "trợ từ ngữ khí biểu thị đề nghị hoặc phỏng đoán"
+    },
+    {
+      "entry_id": "hsk30-b1-0044",
+      "english": "The car.",
+      "en": "on board a vehicle; in a vehicle",
+      "vi": "trên xe; trong xe"
+    },
+    {
+      "entry_id": "hsk30-b1-0137",
+      "english": "Chinese character(s)",
+      "vi": "chữ Hán"
+    },
+    { "chinese": "我爱您。", "vi": "Tôi yêu quý ông/bà." }
+  ]
+}

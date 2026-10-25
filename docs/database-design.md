@@ -1,0 +1,13 @@
+# Database design
+
+`vocabulary_sources` pins repository, commit, license, attribution, and standard. `vocabulary` uses the original source entry ID as its primary key, plus band, source order, simplified spelling, pinyin, and original printed fields. Chinese spelling is deliberately not unique. `vocabulary_senses`, `vocabulary_translations`, and `vocabulary_examples` reference a source and an exact entry. Unknown content is absent, not invented.
+
+`topics` is a database catalogue. `vocabulary_topics` is many-to-many, source-attributed. `user_vocabulary` has primary key `(user_id, vocabulary_id)` with NEW/LEARNING/MASTERED and independent favorite/difficult/suspended flags. Neither band nor topic is part of this key. Progress is shared across every collection.
+
+`profiles` contains validated preferences and time zone. `review_cards` is keyed by user, vocabulary, and skill; `review_logs` is immutable, with a unique per-user event ID. Scheduling updates will use a locked, version-checked atomic transaction in Phase 2. A lesson is a deterministic slice of source entries and never owns vocabulary progress. Completion records must be distinct from mastery.
+
+Every personal table enables RLS with `auth.uid() = user_id`. Public source/catalogue tables permit read access but no browser writes. Enrichment/import credentials stay server-side. Progress updates set individual fields instead of replacing stale snapshots. Account preferences use a constrained JSON schema at the action boundary. Index band/order, topic links, personal state and review due date. No destructive source import or cascade from a collection to personal vocabulary progress.
+
+Phase 1 migrations provide sources, vocabulary, senses/translations/examples, topics/mappings, profiles, shared progress, and the review-card schema. Custom decks, practice telemetry and atomic reviews are Phase 2/3 migrations rather than unused application flows.
+
+Supabase Auth validates sessions using `auth.users`; application `profiles` is a separate table, not a credential store. Migration `202610250002_create_profiles.sql` installs an after-insert trigger on `auth.users` that creates a profile through a restricted SECURITY DEFINER function. It backfills missing profiles for existing accounts with `ON CONFLICT DO NOTHING`, preserving preferences and display names. Profile deletion follows auth-user deletion via the existing foreign key. Authenticated dashboard bootstrap requires the user's profile row, rather than silently hiding missing provisioning behind defaults.

@@ -1,0 +1,20 @@
+{
+  "source": {
+    "id": "owner-design-reference-v1",
+    "name": "User-provided HanziFlow UI reference text",
+    "version": "1",
+    "license": "Project-owner supplied reference material; not a licensed dictionary",
+    "attribution": "Vocabulary and detail examples transcribed from 06-vocabulary-library.png and 07-vocabulary-detail.png supplied by the project owner.",
+    "review_status": "reference-transcription",
+    "notes": "Gloss text only; original HSK source controls bands and pinyin. The reference's 你好 is not a source entry and was not invented. No inferred dictionary senses or examples."
+  },
+  "entries": [
+    {"id":"hsk30-b1-0124","senses":[{"id":"owner-design-gongzuo","vi":"công việc, làm việc","en":"work, job, occupation"}],"topics":["work-career"]},
+    {"id":"hsk30-b1-0284","senses":[{"id":"owner-design-pengyou","vi":"bạn bè"}],"topics":["friends"]},
+    {"id":"hsk30-b1-0388","senses":[{"id":"owner-design-xihuan","vi":"thích"}],"topics":["emotions"]},
+    {"id":"hsk30-b1-0410","senses":[{"id":"owner-design-xiexie","vi":"cảm ơn"}],"topics":["daily-conversation"]},
+    {"id":"hsk30-b1-0420","senses":[{"id":"owner-design-xuexi","vi":"học tập"}],"topics":["education"]},
+    {"id":"hsk30-b2-0266","senses":[{"id":"owner-design-jiankang","vi":"sức khỏe"}],"topics":["health"]},
+    {"id":"hsk30-b2-0368","senses":[{"id":"owner-design-lvxing","vi":"du lịch"}],"topics":["travel"]}
+  ]
+}

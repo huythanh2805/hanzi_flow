@@ -1,0 +1,8 @@
+data/source/
+data/catalogue.json
+.next/
+.local-tests/
+.playwright-mcp/
+node_modules/
+package-lock.json
+test-results/

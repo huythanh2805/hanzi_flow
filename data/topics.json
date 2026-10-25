@@ -1,0 +1,22 @@
+[
+  {"id":"daily-conversation","name":"Giao tiếp hằng ngày","description":"Những lời đầu tiên, kết nối mỗi ngày.","icon":"MessagesSquare","color":"coral"},
+  {"id":"family","name":"Gia đình","description":"Những người thân yêu quanh bạn.","icon":"House","color":"amber"},
+  {"id":"relationships","name":"Các mối quan hệ","description":"Kết nối và thấu hiểu nhau.","icon":"HeartHandshake","color":"rose"},
+  {"id":"friends","name":"Bạn bè","description":"Chia sẻ và xây dựng tình bạn.","icon":"Users","color":"blue"},
+  {"id":"work-career","name":"Công việc & sự nghiệp","description":"Tự tin hơn trong môi trường làm việc.","icon":"BriefcaseBusiness","color":"blue"},
+  {"id":"education","name":"Học tập","description":"Mở rộng tri thức, mỗi ngày một chút.","icon":"GraduationCap","color":"jade"},
+  {"id":"technology","name":"Công nghệ & lập trình","description":"Ngôn ngữ của thế giới số.","icon":"Laptop","color":"blue"},
+  {"id":"travel","name":"Du lịch","description":"Mang tiếng Trung theo mỗi hành trình.","icon":"Plane","color":"blue"},
+  {"id":"food","name":"Ẩm thực","description":"Khám phá hương vị và gọi món.","icon":"Utensils","color":"amber"},
+  {"id":"shopping","name":"Mua sắm","description":"Tìm thứ bạn cần trong cuộc sống.","icon":"ShoppingBag","color":"rose"},
+  {"id":"finance","name":"Tài chính","description":"Tiền bạc, tiết kiệm và đầu tư.","icon":"Wallet","color":"jade"},
+  {"id":"health","name":"Sức khỏe","description":"Chăm sóc bản thân mỗi ngày.","icon":"HeartPulse","color":"rose"},
+  {"id":"emotions","name":"Cảm xúc","description":"Gọi tên những điều bạn cảm nhận.","icon":"Heart","color":"coral"},
+  {"id":"personality","name":"Tính cách","description":"Hiểu bản thân và những người khác.","icon":"Smile","color":"amber"},
+  {"id":"lifestyle","name":"Phong cách sống","description":"Thói quen và những điều thường nhật.","icon":"Coffee","color":"jade"},
+  {"id":"society-culture","name":"Xã hội & văn hóa","description":"Khám phá văn hóa và cộng đồng.","icon":"Landmark","color":"amber"},
+  {"id":"opinions","name":"Quan điểm","description":"Bày tỏ suy nghĩ của riêng bạn.","icon":"MessageCircle","color":"blue"},
+  {"id":"time","name":"Thời gian & lịch trình","description":"Sắp xếp ngày của bạn.","icon":"CalendarDays","color":"jade"},
+  {"id":"transportation","name":"Giao thông","description":"Di chuyển và tìm đường.","icon":"TrainFront","color":"blue"},
+  {"id":"housing","name":"Nhà ở","description":"Không gian sống và sinh hoạt.","icon":"Building2","color":"amber"}
+]

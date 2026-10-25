@@ -1,0 +1,36 @@
+[
+  {
+    "pair": "en_vi",
+    "url": "https://argos-net.com/v1/translate-en_vi-1_9.argosmodel",
+    "sha256": "86957101aa4099aa9a1a7492e41987d938d3cf0fdaf4fb684c0797a9d567dd16",
+    "bytes": 67770159,
+    "metadata": {
+      "package_version": "1.9",
+      "argos_version": "1.9",
+      "from_code": "en",
+      "from_name": "English",
+      "to_code": "vi",
+      "to_name": "Vietnamese"
+    },
+    "notices": {
+      "README.md": "# English - Vietnamese version 1.0\r\n\r\nAuthors: Jörg Tiedemann and Santhosh Thottingal\r\nTitle: \"OPUS-MT — Building open translation services for the World\"\r\nBook Title: Proceedings of the 22nd Annual Conference of the European Association for Machine Translation (EAMT)\r\nYear: 2020\r\nLocation: Lisbon, Portugal\r\n\r\nThe original OPUS model from which this packaged model is derived is licensed CC-BY 4.0\r\n"
+    }
+  },
+  {
+    "pair": "zh_en",
+    "url": "https://argos-net.com/v1/translate-zh_en-1_9.argosmodel",
+    "sha256": "62e7af5a3a48b530e47b7b3e5c78c2de79073ecd815750d2bf3ab35b4a67da2d",
+    "bytes": 74481402,
+    "metadata": {
+      "package_version": "1.9",
+      "argos_version": "1.9.0",
+      "from_code": "zh",
+      "from_name": "Chinese",
+      "to_code": "en",
+      "to_name": "English"
+    },
+    "notices": {
+      "README.md": "# Chinese - English version 1.9\n\nAuthors: Jörg Tiedemann and Santhosh Thottingal\nTitle: \"OPUS-MT — Building open translation services for the World\"\nBook Title: Proceedings of the 22nd Annual Conference of the European Association for Machine Translation (EAMT)\nYear: 2020\nLocation: Lisbon, Portugal\n\nThe original OPUS model from which this packaged model is derived is licensed CC-BY 4.0\n\n"
+    }
+  }
+]
